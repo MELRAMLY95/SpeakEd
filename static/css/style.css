@@ -162,7 +162,8 @@ h1, h2, h3 { font-family: "Fraunces", Georgia, serif; font-weight: 640; letter-s
 
 html { scroll-behavior: smooth; }
 
-*:focus { outline: none; }
+/* Keep focus outline for accessibility, only hide on mouse interaction */
+*:focus:not(:focus-visible) { outline: none; }
 *:focus-visible { outline: 3px solid var(--wine); outline-offset: 2px; }
 .flash { padding: 10px 14px; border-radius: 10px; background: #fff; border: 1px solid var(--line); animation: slideIn 0.3s ease-out; }
 .flash-error { border-color: var(--danger); background: #fff5f5; }
@@ -172,7 +173,8 @@ html { scroll-behavior: smooth; }
 .stack { display: grid; gap: 14px; }
 label { display: grid; gap: 6px; font-weight: 500; }
 input, textarea, select { font: inherit; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--line); background: #fff; transition: all 0.2s ease; }
-input:focus, textarea:focus, select:focus { outline: none; border-color: var(--wine); box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1); }
+input:focus, textarea:focus, select:focus { border-color: var(--wine); box-shadow: 0 0 0 3px rgba(114, 47, 55, 0.1); }
+input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid var(--wine); outline-offset: 2px; }
 .eyebrow { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.75rem; color: var(--gold); font-weight: 700; }
 .notice { background: #fff7e8; border: 1px solid #ead7a8; padding: 12px 14px; border-radius: 10px; }
 
