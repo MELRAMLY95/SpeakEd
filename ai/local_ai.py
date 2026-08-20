@@ -1,6 +1,7 @@
 import json
 import urllib.error
 import urllib.request
+from typing import Any
 
 from ai.ai_provider import AIMessage, AIProvider
 
@@ -135,6 +136,95 @@ class OllamaProvider(AIProvider):
             return "Good response. Keep practicing to improve your speaking skills."
 
 
+class GeminiProvider(AIProvider):
+    """Google Gemini API — has a free tier (see https://ai.google.dev/pricing).
+
+    Used automatically on Render (no local Ollama to reach there) and as a
+    fallback anywhere else once Ollama is unavailable and a key is set.
+    """
+
+    name = "gemini"
+
+    def __init__(self, api_key: str, model: str, timeout: int = 30):
+        self.api_key = api_key
+        self.model = model
+        self.timeout = timeout
+
+    def is_available(self) -> bool:
+        return bool(self.api_key)
+
+    def generate(
+        self,
+        messages: list[AIMessage],
+        *,
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 800,
+    ) -> str:
+        # Gemini has no "system" role in `contents` — system text goes in a
+        # separate systemInstruction field, and "assistant" turns are "model".
+        system_parts: list[str] = []
+        contents: list[dict[str, Any]] = []
+        for m in messages:
+            if m.role == "system":
+                system_parts.append(m.content)
+                continue
+            role = "model" if m.role == "assistant" else "user"
+            contents.append({"role": role, "parts": [{"text": m.content}]})
+        if not contents:
+            contents = [{"role": "user", "parts": [{"text": ""}]}]
+
+        payload: dict[str, Any] = {
+            "contents": contents,
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
+            },
+        }
+        if system_parts:
+            payload["systemInstruction"] = {"parts": [{"text": "\n\n".join(system_parts)}]}
+        if json_mode:
+            payload["generationConfig"]["responseMimeType"] = "application/json"
+
+        data = json.dumps(payload).encode("utf-8")
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model}:generateContent?key={self.api_key}"
+        )
+        request = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            body = json.loads(response.read().decode("utf-8"))
+
+        candidates = body.get("candidates") or []
+        if not candidates:
+            block_reason = (body.get("promptFeedback") or {}).get("blockReason")
+            raise RuntimeError(f"Gemini returned no candidates (blockReason={block_reason!r})")
+        parts = candidates[0].get("content", {}).get("parts", [])
+        return "".join(p.get("text", "") for p in parts)
+
+    def generate_text(
+        self,
+        prompt: str,
+        max_tokens: int = 100,
+        temperature: float = 0.7,
+        json_mode: bool = False,
+    ) -> str:
+        """Simple text generation using Gemini."""
+        messages = [AIMessage(role="user", content=prompt)]
+        try:
+            return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
+        except Exception as e:
+            print(f"Gemini text generation failed: {e}")
+            if json_mode:
+                raise
+            return "Good response. Keep practicing to improve your speaking skills."
+
+
 class OpenAIProvider(AIProvider):
     name = "openai"
 
@@ -199,14 +289,33 @@ def create_provider(config: dict) -> AIProvider:
     if choice == "rule":
         return RuleBasedProvider()
     if choice == "ollama":
-        return OllamaProvider(config["OLLAMA_BASE_URL"], config["OLLAMA_MODEL"])
+        return OllamaProvider(config.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"), config.get("OLLAMA_MODEL", "llama3.2"))
+    if choice == "gemini":
+        return GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.6-flash"))
     if choice == "openai":
         return OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
 
+    # --- "auto" mode ---
+    gemini = GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.6-flash"))
+    openai = OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
+
+    if config.get("IS_RENDER"):
+        # On Render there's no local Ollama to reach, so go straight to the
+        # free-tier Gemini API, then OpenAI (if a key happens to be set),
+        # then the offline rule-based scorer as a last resort.
+        if gemini.is_available():
+            return gemini
+        if openai.is_available():
+            return openai
+        return RuleBasedProvider()
+
+    # Local development: prefer a locally running Ollama model (free,
+    # private, works offline), then Gemini, then OpenAI, then rule-based.
     ollama = OllamaProvider(config.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"), config.get("OLLAMA_MODEL", "llama3.2"))
     if ollama.is_available():
         return ollama
-    openai = OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
+    if gemini.is_available():
+        return gemini
     if openai.is_available():
         return openai
     return RuleBasedProvider()
