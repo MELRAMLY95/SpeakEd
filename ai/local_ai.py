@@ -68,17 +68,27 @@ class RuleBasedProvider(AIProvider):
 class OllamaProvider(AIProvider):
     name = "ollama"
 
-    def __init__(self, base_url: str, model: str, timeout: int = 20):
+    def __init__(self, base_url: str, model: str, timeout: int = 20, availability_cache_seconds: float = 30.0):
         self.base_url = base_url.rstrip("/")
         self.model = model
         self.timeout = timeout
+        self._availability_cache_seconds = availability_cache_seconds
+        self._last_check_at: float | None = None
+        self._last_available: bool = False
 
     def is_available(self) -> bool:
+        import time
+
+        now = time.monotonic()
+        if self._last_check_at is not None and (now - self._last_check_at) < self._availability_cache_seconds:
+            return self._last_available
         try:
             with urllib.request.urlopen(f"{self.base_url}/api/tags", timeout=2) as response:
-                return response.status == 200
+                self._last_available = response.status == 200
         except (urllib.error.URLError, TimeoutError, OSError):
-            return False
+            self._last_available = False
+        self._last_check_at = now
+        return self._last_available
 
     def generate(
         self,

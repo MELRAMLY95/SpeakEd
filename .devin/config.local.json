@@ -10,7 +10,9 @@
       "Exec(move)",
       "Exec(Move-Item)",
       "Exec(git init)",
-      "Exec(git add)"
+      "Exec(git add)",
+      "Exec(git commit)",
+      "Exec(git config)"
     ]
   }
 }

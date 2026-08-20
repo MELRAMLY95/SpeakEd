@@ -50,7 +50,15 @@ def get_provider():
 
     from ai.local_ai import create_provider
 
-    return create_provider(current_app.config)
+    # Cache the provider on the app itself. Without this, create_provider()
+    # ran on EVERY marking/feedback/practice-note call, and in "auto" mode
+    # that means a live network probe to Ollama (up to a multi-second
+    # timeout) before it even reaches OpenAI -- repeated on every single AI
+    # interaction in an exam. This was the main source of the lag.
+    cache = current_app.extensions.setdefault("ai_provider_cache", {})
+    if "provider" not in cache:
+        cache["provider"] = create_provider(current_app.config)
+    return cache["provider"]
 
 
 def get_ai():
