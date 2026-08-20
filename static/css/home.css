@@ -45,6 +45,7 @@
   position: absolute; 
   z-index: 0; 
   opacity: 0.6;
+  pointer-events: none;
 }
 
 .geo-shape-1 { 
