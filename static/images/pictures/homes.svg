@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="A family home with a garden">
+  <rect width="640" height="400" fill="#d7ecf7"/>
+  <rect y="250" width="640" height="150" fill="#8fbf73"/>
+  <rect x="160" y="140" width="280" height="170" fill="#f3efe4" stroke="#6d4c41" stroke-width="4"/>
+  <polygon points="150,140 300,50 450,140" fill="#b23a3a"/>
+  <rect x="280" y="220" width="50" height="90" fill="#6d4c41"/>
+  <rect x="190" y="170" width="50" height="40" fill="#90caf9"/>
+  <rect x="360" y="170" width="50" height="40" fill="#90caf9"/>
+  <circle cx="520" cy="90" r="28" fill="#ffd54f"/>
+  <rect x="80" y="220" width="18" height="70" fill="#5d4037"/>
+  <circle cx="89" cy="210" r="36" fill="#2e7d32"/>
+</svg>

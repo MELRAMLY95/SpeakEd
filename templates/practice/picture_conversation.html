@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/practice.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Picture practice{% endblock %}
+{% block content %}
+<section class="wrap hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Picture-based conversation</p>
+    <h1>Task 3 Picture conversation</h1>
+    <p class="lead">Choose a picture topic to practice. Each image is randomly selected from high-quality stock photos.</p>
+  </div>
+</section>
+<section class="wrap">
+  <div class="refresh-section">
+    <button class="btn btn-ghost" onclick="refreshImages()">🔄 Get new random images</button>
+  </div>
+  
+  <div class="picture-cards-grid">
+    {% for card in cards %}
+    <div class="picture-card">
+      <img src="{{ card.image }}" alt="{{ card.title }}" class="picture-preview">
+      <div class="picture-info">
+        <h3>{{ card.title }}</h3>
+        <p>{{ card.topic_area }}</p>
+        <form method="post" action="{{ url_for('practice.start') }}">
+          <input type="hidden" name="section" value="picture">
+          <input type="hidden" name="picture_id" value="{{ card.id }}">
+          <button class="btn btn-primary" type="submit">Practice this topic</button>
+        </form>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+
+<script>
+async function refreshImages() {
+  const btn = event.target;
+  btn.disabled = true;
+  btn.textContent = 'Loading...';
+  
+  try {
+    const response = await fetch('/practice/refresh-images', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    });
+    const data = await response.json();
+    
+    if (data.success) {
+      // Reload page to show new images
+      window.location.reload();
+    }
+  } catch (error) {
+    console.error('Failed to refresh images:', error);
+    btn.disabled = false;
+    btn.textContent = '🔄 Get new random images';
+  }
+}
+</script>
+
+<style>
+.refresh-section {
+  margin: 24px 0;
+}
+
+.picture-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  gap: 32px;
+  margin-top: 32px;
+}
+
+.picture-card {
+  background: #fff;
+  border: 2px solid var(--line);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: var(--shadow);
+  transition: all 0.3s ease;
+}
+
+.picture-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+}
+
+.picture-preview {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+  aspect-ratio: 16/9;
+}
+
+.picture-info {
+  padding: 24px;
+}
+
+.picture-info h3 {
+  margin: 0 0 8px 0;
+  color: var(--wine);
+  font-size: 1.3rem;
+}
+
+.picture-info p {
+  margin: 0 0 16px 0;
+  color: var(--muted);
+}
+
+.picture-info form {
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .picture-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+{% endblock %}

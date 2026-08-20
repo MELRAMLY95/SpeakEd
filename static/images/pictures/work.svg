@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="People working in an office">
+  <rect width="640" height="400" fill="#eceff1"/>
+  <rect x="60" y="160" width="220" height="110" fill="#90caf9"/>
+  <rect x="360" y="160" width="220" height="110" fill="#80cbc4"/>
+  <rect x="90" y="190" width="80" height="50" fill="#fff"/>
+  <rect x="400" y="190" width="80" height="50" fill="#fff"/>
+  <circle cx="150" cy="150" r="16" fill="#ffcc80"/>
+  <circle cx="460" cy="150" r="16" fill="#ffcc80"/>
+  <rect x="0" y="330" width="640" height="70" fill="#78909c"/>
+</svg>

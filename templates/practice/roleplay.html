@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/practice.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Role play practice{% endblock %}
+{% block content %}
+<section class="wrap hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Role play practice</p>
+    <h1>Task 1 Role play</h1>
+    <p class="lead">Practise the role play task with the examiner. You will be given a situation and candidate bullet points.</p>
+    <div class="hero-actions">
+      <form method="post" action="{{ url_for('practice.start') }}">
+        <input type="hidden" name="section" value="roleplay">
+        <button class="btn btn-primary" type="submit">Start role play</button>
+      </form>
+    </div>
+  </div>
+</section>
+{% endblock %}

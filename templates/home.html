@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero wrap">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Pearson Edexcel International GCSE · 4XES2 Unit 4</p>
+    <h1>A virtual speaking examiner for English as a Second Language.</h1>
+    <p class="lead">Practise the real examination shape: warm-up, role play, topic talk, and picture-based conversation. Speak aloud. Hear the examiner. Receive an AI-estimated practice mark.</p>
+    <div class="hero-actions">
+      {% if current_user %}
+        <a class="btn btn-primary" href="{{ url_for('exam.intro') }}">Start full exam</a>
+      {% else %}
+        <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Start practising</a>
+        <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Sign in</a>
+      {% endif %}
+    </div>
+  </div>
+  <aside class="hero-card" aria-label="Exam structure">
+    <h2>Examination structure</h2>
+    <ol>
+      <li><span>10 min</span> Preparation</li>
+      <li><span>1 min</span> Warm-up (unmarked)</li>
+      <li><span>1–2 min</span> Task 1 Role play · 10 marks</li>
+      <li><span>5 min</span> Task 2 Topic talk · 20 marks</li>
+      <li><span>5 min</span> Task 3 Picture conversation · 20 marks</li>
+    </ol>
+  </aside>
+</section>
+<section class="wrap features" id="about">
+  <article>
+    <span class="badge badge-wine">Professional</span>
+    <h2>Not a chatbot</h2>
+    <p>The examiner stays professional, does not coach during a full exam, and does not reveal marks until the end.</p>
+  </article>
+  <article>
+    <span class="badge badge-gold">Interactive</span>
+    <h2>Voice first</h2>
+    <p>The examiner speaks. You answer with your microphone. Browser speech recognition and text-to-speech keep early use free.</p>
+  </article>
+  <article>
+    <span class="badge badge-purple">Accurate</span>
+    <h2>Official criteria</h2>
+    <p>Scoring follows the published Pearson 4XES2 speaking grids. Results are practice estimates only.</p>
+  </article>
+</section>
+{% endblock %}

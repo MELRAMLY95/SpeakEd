@@ -1,0 +1,8 @@
+.history { width: 100%; border-collapse: collapse; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: var(--shadow); }
+.history th, .history td { text-align: left; padding: 16px 20px; border-bottom: 2px solid var(--line); }
+.history th { background: linear-gradient(135deg, #722F37, #9B3D46); color: #fff; font-weight: 700; }
+.history tr:hover { background: rgba(114, 47, 55, 0.05); }
+.stats-inline { display: flex; gap: 24px; list-style: none; padding: 0; margin: 32px 0; }
+.stats-inline li { background: #fff; padding: 16px 24px; border-radius: 12px; border: 2px solid var(--line); font-weight: 600; color: var(--ink); box-shadow: var(--shadow); }
+.stats-inline li strong { display: block; font-size: 1.5rem; color: var(--wine); margin-bottom: 4px; }
+#scoreChart { width: 100%; background: #fff; border: 2px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); margin: 32px 0; }

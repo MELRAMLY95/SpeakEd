@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/evaluation.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/evaluation.js') }}"></script>{% endblock %}
+{% block title %}Evaluation corner{% endblock %}
+{% block content %}
+<section class="wrap hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Evaluation corner</p>
+    <h1>Review your performance</h1>
+    <p class="lead">{{ disclaimer }}</p>
+  </div>
+</section>
+<section class="wrap eval">
+  {% if form_only %}
+    <h1>Student self-evaluation</h1>
+    <form method="post" class="stack">
+      <label>How confident did you feel? (1–5) <input type="number" name="confidence" min="1" max="5" required></label>
+      <label>How fluent did you feel? (1–5) <input type="number" name="fluency" min="1" max="5" required></label>
+      <label>How difficult was the task? (1–5) <input type="number" name="difficulty" min="1" max="5" required></label>
+      <label>What did you struggle with? <textarea name="struggled_with" rows="3" required></textarea></label>
+      <label>What would you improve next time? <textarea name="improve_next" rows="3" required></textarea></label>
+      <label>How satisfied were you? (1–5) <input type="number" name="satisfaction" min="1" max="5" required></label>
+      <label>Anything else? <textarea name="student_notes" rows="3"></textarea></label>
+      <button class="btn btn-primary" type="submit">Save evaluation</button>
+    </form>
+  {% else %}
+    <div class="eval-grid">
+      <article>
+        <h2>AI evaluation</h2>
+        <h3>Strengths</h3>
+        <ul>{% for item in strengths %}<li>{{ item }}</li>{% else %}<li>Complete an exam to see AI comments.</li>{% endfor %}</ul>
+        <h3>Weaknesses</h3>
+        <ul>{% for item in weaknesses %}<li>{{ item }}</li>{% endfor %}</ul>
+        <h3>Recurring issues</h3>
+        <ul>{% for item in themes.recurring_weaknesses %}<li>{{ item }}</li>{% else %}<li>Need at least two similar attempts.</li>{% endfor %}</ul>
+      </article>
+      <article>
+        <h2>Student vs AI</h2>
+        {% if comparison and comparison.student %}
+          <p><strong>You said you struggled with:</strong> {{ comparison.student }}</p>
+          <p><strong>AI weakest area:</strong> {{ comparison.weakest }}</p>
+          <p>Use the gap between these two views to train more honest self-assessment.</p>
+        {% else %}
+          <p>After an attempt, complete a self-evaluation so we can compare it with the examiner comments.</p>
+        {% endif %}
+      </article>
+    </div>
+    <h2>Recommended practice</h2>
+    <ul>
+      {% for item in coach %}
+        <li>{{ item.prompt }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+</section>
+{% endblock %}

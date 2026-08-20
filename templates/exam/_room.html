@@ -1,0 +1,31 @@
+<section class="exam-room" data-exam-room data-attempt-id="{{ state.attempt_id }}" data-stage="{{ state.stage }}">
+  <header class="exam-top">
+    <p class="brand-mini">SpeakEd</p>
+    <p class="exam-stage">{{ state.stage_label }}</p>
+    <p class="exam-progress">{{ state.progress.step }} / {{ state.progress.total }}</p>
+  </header>
+  <div class="examiner">
+    <p class="examiner-label">AI examiner</p>
+    <p class="status-pill" data-status>Ready</p>
+    <blockquote data-question>{{ (state.prompt.display if state.prompt else 'Preparing the next prompt.') }}</blockquote>
+    {% if state.prompt and state.prompt.image %}
+      <figure class="stimulus">
+        <img src="{{ state.prompt.image }}" alt="Picture stimulus">
+      </figure>
+    {% elif state.cards.picture and state.stage in ['preparation', 'picture'] %}
+      <figure class="stimulus">
+        <img src="{{ state.cards.picture.image }}" alt="Picture stimulus for {{ state.cards.picture.title }}">
+      </figure>
+    {% endif %}
+    <p class="mic-state" data-mic-state>Microphone idle</p>
+    <p class="timer" data-timer hidden>00:00</p>
+  </div>
+  {% if state.mode == 'practice' %}
+    <p class="practice-note" data-practice-note></p>
+  {% endif %}
+  <div class="exam-controls">
+    <button type="button" class="btn btn-primary" data-mic>Hold to speak</button>
+    <button type="button" class="btn btn-ghost" data-repeat>Repeat question</button>
+  </div>
+  <p class="transcript-live" data-live-transcript></p>
+</section>

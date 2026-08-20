@@ -1,0 +1,138 @@
+{
+  "qualification": "Pearson Edexcel International GCSE English as a Second Language (4XES2)",
+  "unit": "Unit 4 Speaking",
+  "source": "Pearson Edexcel International GCSE ESL (4XES2) Sample Assessment Materials, Issue 3, October 2025 — Unit 4 Speaking mark scheme.",
+  "disclaimer": "AI-generated marks are estimates for practice purposes and are not official Pearson Edexcel marks or grades.",
+  "task1_roleplay": {
+    "max_marks": 10,
+    "method": "The mark grid is applied once to each of the five prompts. Maximum 2 marks per prompt.",
+    "per_prompt": [
+      {
+        "mark": 2,
+        "descriptor": "Clearly communicated; appropriate within the context of the role play; unambiguous; pronunciation supports clear communication."
+      },
+      {
+        "mark": 1,
+        "descriptor": "Partially clear/ambiguous OR partially appropriate within the context of the role play; pronunciation may affect clarity of communication."
+      },
+      {
+        "mark": 0,
+        "descriptor": "No rewardable communication; highly ambiguous OR pronunciation prevents communication."
+      }
+    ]
+  },
+  "task2_topic_talk": {
+    "max_marks": 20,
+    "communication_and_content": [
+      {
+        "min": 10,
+        "max": 12,
+        "descriptor": "Communicates detailed information relevant to the topic and questions, with consistently extended sequences of speech. Speaks and responds with ease to questions spontaneously, resulting in natural interaction. Communication is clear with occasional ambiguity. Pronunciation and intonation are consistently accurate and intelligible."
+      },
+      {
+        "min": 7,
+        "max": 9,
+        "descriptor": "Communicates detailed information relevant to the topic and questions, usually with extended sequences of speech. Speaks and responds to most questions spontaneously, resulting in mostly natural interaction. Communication is generally clear but with some ambiguity. Pronunciation and intonation are intelligible and mostly accurate."
+      },
+      {
+        "min": 4,
+        "max": 6,
+        "descriptor": "Communicates information relevant to the topic and questions, with some extended sequences of speech. Speaks and responds to some questions spontaneously, interacting naturally for parts of the conversation. Some examples of clear communication, the message sometimes breaks down. Pronunciation and intonation are intelligible; inaccuracies sometimes impact clarity of communication."
+      },
+      {
+        "min": 1,
+        "max": 3,
+        "descriptor": "Communicates straightforward information in relation to the topic and questions, with occasionally extended sequences of speech. Occasionally able to speak and respond spontaneously with some examples of natural interaction although often stilted. Limited examples of clear communication, the message often breaks down. Pronunciation and intonation are mostly intelligible; inaccuracies frequently affect clarity of communication."
+      },
+      {
+        "min": 0,
+        "max": 0,
+        "descriptor": "No rewardable material."
+      }
+    ],
+    "linguistic_knowledge_and_accuracy": [
+      {
+        "min": 7,
+        "max": 8,
+        "descriptor": "Wide range of vocabulary that is consistently appropriate to the task. Wide range of straightforward and complex structures that are used effectively and appropriately with a few lapses. Consistently accurate vocabulary and structures; occasional minor errors."
+      },
+      {
+        "min": 5,
+        "max": 6,
+        "descriptor": "Range of vocabulary is appropriate for most of the response. Good range of straightforward and some complex structures that are generally used effectively and appropriately. Vocabulary and structures are accurate for most of the response; mostly minor errors with occasional major errors."
+      },
+      {
+        "min": 3,
+        "max": 4,
+        "descriptor": "Range of vocabulary is appropriate for some of the response. Adequate but predictable range of straightforward structures that are sometimes used effectively and appropriately. Some accurate vocabulary and structures; errors occur, some of which are major."
+      },
+      {
+        "min": 1,
+        "max": 2,
+        "descriptor": "Range of vocabulary is limited. Limited range of simple structures, likely to be repetitive. Limited accuracy of vocabulary and structures; frequent errors, both major and minor."
+      },
+      {
+        "min": 0,
+        "max": 0,
+        "descriptor": "No rewardable material."
+      }
+    ]
+  },
+  "task3_picture": {
+    "max_marks": 20,
+    "communication_and_content": [
+      {
+        "min": 10,
+        "max": 12,
+        "descriptor": "Describes the picture and responds to questions in a consistently fluent and developed manner. Speaks and responds with ease to questions spontaneously, resulting in natural interaction. Communication is clear with occasional ambiguity. Pronunciation and intonation are consistently accurate and intelligible."
+      },
+      {
+        "min": 7,
+        "max": 9,
+        "descriptor": "Describes the picture and responds to questions in a mostly developed and fluent manner, with minimal hesitation and minimal prompting necessary. Speaks and responds to most questions spontaneously, resulting in mostly natural interaction. Communication is generally clear but with some ambiguity. Pronunciation and intonation are intelligible and mostly accurate."
+      },
+      {
+        "min": 4,
+        "max": 6,
+        "descriptor": "Describes the picture and responds to questions with occasional development, some hesitation, some prompting necessary. Speaks and responds to some questions spontaneously, interacting naturally for parts of the conversation. Some examples of clear communication, the message sometimes breaks down. Pronunciation and intonation are intelligible; inaccuracies sometimes impact clarity of communication."
+      },
+      {
+        "min": 1,
+        "max": 3,
+        "descriptor": "Describes the picture and responds to questions with limited development; hesitation is apparent and prompting is often necessary. Occasionally able to speak and respond spontaneously, with some examples of natural interaction although often stilted. Limited examples of clear communication, the message often breaks down. Pronunciation and intonation are mostly intelligible; inaccuracies frequently affect clarity of communication."
+      },
+      {
+        "min": 0,
+        "max": 0,
+        "descriptor": "No rewardable material."
+      }
+    ],
+    "linguistic_knowledge_and_accuracy": [
+      {
+        "min": 7,
+        "max": 8,
+        "descriptor": "Wide range of vocabulary that is consistently appropriate to the task. Wide range of straightforward and complex structures that are used effectively and appropriately with a few lapses. Consistently accurate vocabulary and structures; occasional minor errors."
+      },
+      {
+        "min": 5,
+        "max": 6,
+        "descriptor": "Range of vocabulary is appropriate for most of the response. Good range of straightforward and some complex structures that are generally used effectively and appropriately. Vocabulary and structures are accurate for most of the response; mostly minor errors with occasional major errors."
+      },
+      {
+        "min": 3,
+        "max": 4,
+        "descriptor": "Range of vocabulary is appropriate for some of the response. Adequate but predictable range of straightforward structures that are sometimes used effectively and appropriately. Some accurate vocabulary and structures; errors occur, some of which are major."
+      },
+      {
+        "min": 1,
+        "max": 2,
+        "descriptor": "Range of vocabulary is limited. Limited range of simple structures, likely to be repetitive. Limited accuracy of vocabulary and structures; frequent errors, both major and minor."
+      },
+      {
+        "min": 0,
+        "max": 0,
+        "descriptor": "No rewardable material."
+      }
+    ]
+  }
+}

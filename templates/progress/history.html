@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/progress.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Past attempts{% endblock %}
+{% block content %}
+<section class="wrap hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Your history</p>
+    <h1>Past attempts</h1>
+    <p class="lead">Review all your previous exam attempts and scores</p>
+  </div>
+</section>
+<section class="wrap">
+  <table class="history">
+    <thead>
+      <tr><th>Date</th><th>Type</th><th>Mode</th><th>Score</th><th>Action</th></tr>
+    </thead>
+    <tbody>
+      {% for row in attempts %}
+        <tr>
+          <td>{{ row.started_at[:16].replace('T', ' ') }}</td>
+          <td>{{ row.exam_type }}</td>
+          <td>{{ row.mode }}</td>
+          <td><strong>{{ row.total_score if row.total_score is not none else row.status }}</strong></td>
+          <td><a class="btn btn-ghost" href="{{ url_for('progress.attempt', attempt_id=row.id) }}">View</a></td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

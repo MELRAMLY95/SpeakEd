@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/practice.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/practice.js') }}"></script>{% endblock %}
+{% block title %}Practice{% endblock %}
+{% block content %}
+<section class="wrap hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Practice mode</p>
+    <h1>Practice one section, or sit a full exam</h1>
+    <p class="lead">Practice mode can give a short coaching note after each answer. Marks still use the 4XES2 grids and remain estimates.</p>
+  </div>
+</section>
+<section class="wrap">
+  <div class="practice-grid">
+    <a href="{{ url_for('practice.roleplay') }}">Role play practice</a>
+    <a href="{{ url_for('practice.topic_talk') }}">Topic talk practice</a>
+    <a href="{{ url_for('practice.picture') }}">Picture-based conversation</a>
+    <a href="{{ url_for('exam.intro') }}">Full exam</a>
+  </div>
+</section>
+{% endblock %}

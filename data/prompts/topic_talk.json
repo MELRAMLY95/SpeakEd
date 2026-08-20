@@ -1,0 +1,30 @@
+{
+  "task": "topic_talk",
+  "global_issues_options": [
+    {"id": "env", "title": "The environment", "examples": ["plastic pollution and its impact on marine life", "deforestation and biodiversity loss", "renewable energy transition", "climate change and extreme weather events", "sustainable living practices"]},
+    {"id": "media", "title": "The media", "examples": ["social media and its influence on young people", "news reliability and fake news", "online advertising and consumer behaviour", "digital privacy and data protection", "the role of traditional media in the digital age"]},
+    {"id": "tech", "title": "Technology", "examples": ["artificial intelligence in education", "smartphone addiction and mental health", "online learning versus traditional classroom", "automation and the future of work", "the digital divide and access to technology"]}
+  ],
+  "follow_ups": [
+    {"id": "tt01", "difficulty": "easy", "meaning_key": "tell more about topic", "prompt": "Tell me more about {topic}, focusing on what you find most interesting about this issue."},
+    {"id": "tt02", "difficulty": "easy", "meaning_key": "where found information", "prompt": "Where did you find the information about {topic}, and how reliable do you think those sources are?"},
+    {"id": "tt03", "difficulty": "medium", "meaning_key": "personal opinion topic", "prompt": "What is your personal opinion on {topic}, and what experiences have shaped your view?"},
+    {"id": "tt04", "difficulty": "medium", "meaning_key": "what could be done", "prompt": "What practical measures could be taken to address this issue, and who should be responsible for implementing them?"},
+    {"id": "tt05", "difficulty": "medium", "meaning_key": "most important understanding", "prompt": "What is the most important thing that the general public should understand about your topic, and why?"},
+    {"id": "tt06", "difficulty": "difficult", "meaning_key": "some people argue agree", "prompt": "Some commentators argue that this issue has been exaggerated by the media. To what extent do you agree or disagree with this view?"},
+    {"id": "tt07", "difficulty": "difficult", "meaning_key": "why people disagree", "prompt": "Why do you think there is such disagreement about this issue, and what factors contribute to these different perspectives?"},
+    {"id": "tt08", "difficulty": "difficult", "meaning_key": "question for expert", "prompt": "If you could ask an expert on this topic one question, what would it be and why is that question important?"},
+    {"id": "tt09", "difficulty": "difficult", "meaning_key": "future changes topic", "prompt": "What significant changes do you predict will occur in relation to this topic over the next decade, and what evidence supports your prediction?"},
+    {"id": "tt10", "difficulty": "medium", "meaning_key": "encourage other people", "prompt": "How could individuals and governments work together to address this issue more effectively?"},
+    {"id": "tt11", "difficulty": "medium", "meaning_key": "advice someone", "prompt": "What advice would you give to someone who wants to learn more about this topic but doesn't know where to start?"},
+    {"id": "tt12", "difficulty": "difficult", "meaning_key": "optimistic or pessimistic", "prompt": "Explain whether you are optimistic or pessimistic about the future of this issue, providing specific reasons for your stance."}
+  ],
+  "coach_prompts": [
+    {"id": "c01", "skill": "development", "prompt": "Give your opinion on school uniforms, then add a reason, a personal example, and a contrasting viewpoint."},
+    {"id": "c02", "skill": "development", "prompt": "Should teenagers have part-time jobs? Explain why, then compare two possible effects, and give your recommendation."},
+    {"id": "c03", "skill": "accuracy", "prompt": "Describe what you did last weekend using past tense accurately, then say what you will do next weekend using future forms correctly."},
+    {"id": "c04", "skill": "speculation", "prompt": "How might public transport change in your city in ten years? Speculate using modal verbs like 'might', 'could', 'may' and give reasons."},
+    {"id": "c05", "skill": "comparison", "prompt": "Compare studying online with studying in a classroom. Discuss advantages and disadvantages of both, then state your preference with justification."},
+    {"id": "c06", "skill": "interaction", "prompt": "Ask me a follow-up question about my view on reducing plastic, then respond to my answer with agreement or disagreement and reasons."}
+  ]
+}

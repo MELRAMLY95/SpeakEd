@@ -1,0 +1,146 @@
+.exam-body .site-footer { display: none; }
+.exam-body { background: var(--paper); color: var(--ink); }
+.exam-body .site-header { background: rgba(255, 255, 255, 0.95); border-color: var(--line); backdrop-filter: blur(10px); }
+.exam-body .nav a, .exam-body .brand { color: var(--ink); }
+.intro-exam { color: var(--ink); background: #fff; padding: 60px 48px 100px; border-radius: 32px; margin: 32px auto; max-width: 900px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); border: 2px solid var(--line); }
+.intro-exam h1 { font-size: 3rem; margin-bottom: 20px; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.intro-exam p { font-size: 1.2rem; color: var(--muted); max-width: 64ch; line-height: 1.7; margin-bottom: 24px; }
+.intro-exam form { max-width: 600px; margin-top: 32px; }
+.intro-exam label { font-size: 1.1rem; margin-bottom: 12px; font-weight: 600; color: var(--ink); }
+.intro-exam input, .intro-exam textarea { font-size: 1.1rem; padding: 18px; border: 2px solid var(--line); }
+.intro-exam input:focus, .intro-exam textarea:focus { border-color: var(--wine); box-shadow: 0 0 0 4px rgba(114, 47, 55, 0.15); }
+.intro-exam .btn { padding: 20px 40px; font-size: 1.2rem; width: 100%; }
+.prep-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin: 40px 0; }
+.prep-grid article { background: #fff; border: 2px solid var(--line); border-radius: 20px; padding: 32px; color: var(--ink); box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.1); }
+.prep-grid article h2 { margin-top: 0; font-size: 1.5rem; color: var(--wine); margin-bottom: 16px; }
+.prep-grid article p { font-size: 1.05rem; line-height: 1.7; color: var(--muted); }
+.prep-grid article ol { padding-left: 24px; }
+.prep-grid article li { margin-bottom: 12px; font-size: 1.05rem; line-height: 1.6; color: var(--ink); }
+.prep-grid article img { width: 100%; border-radius: 16px; margin-top: 20px; box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1); object-fit: cover; aspect-ratio: 16/9; }
+.prep-grid .hint { font-size: 0.9rem; color: var(--wine); font-weight: 600; margin-top: 16px; padding: 12px; background: rgba(114, 47, 55, 0.1); border-radius: 8px; }
+.exam-room { width: min(800px, calc(100% - 32px)); margin: 32px auto 80px; text-align: center; }
+.exam-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 1rem; margin-bottom: 24px; }
+.examiner { margin-top: 48px; }
+.examiner-label { letter-spacing: 0.16em; text-transform: uppercase; font-size: 0.8rem; color: var(--gold); font-weight: 700; }
+.status-pill { display: inline-block; padding: 10px 24px; border-radius: 999px; background: var(--wine); color: #fff; font-size: 0.95rem; }
+blockquote { font-family: Fraunces, serif; font-size: clamp(1.5rem, 3vw, 2.2rem); line-height: 1.3; margin: 32px 0; color: var(--ink); }
+.stimulus img { width: min(100%, 600px); border-radius: 16px; background: #fff; box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15); object-fit: cover; aspect-ratio: 16/9; }
+.exam-controls { display: flex; justify-content: center; gap: 20px; margin-top: 40px; }
+.exam-body .btn-ghost { color: var(--ink); border-color: var(--line); padding: 18px 36px; font-size: 1.1rem; background: #fff; }
+.exam-body .btn-ghost:hover { background: var(--paper); border-color: var(--wine); color: var(--wine); }
+.candidate-strip { color: var(--muted); padding-top: 20px; font-size: 1rem; }
+.results { background: #fff; color: var(--ink); padding: 60px 48px 100px; border-radius: 32px; margin: 32px auto; max-width: 900px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15); border: 2px solid var(--line); }
+.results h1 { font-size: 2.5rem; margin-bottom: 24px; color: var(--wine); }
+.comments { white-space: pre-wrap; background: #fff; padding: 28px; border-radius: 16px; font-size: 1.1rem; line-height: 1.7; border: 2px solid var(--line); }
+.practice-note { min-height: 2rem; color: var(--wine); font-size: 1.1rem; padding: 18px; background: rgba(114, 47, 55, 0.1); border: 2px solid rgba(114, 47, 55, 0.2); border-radius: 12px; margin: 20px 0; font-weight: 600; }
+
+/* Enhanced microphone button */
+[data-mic] {
+  padding: 16px 32px;
+  font-size: 1.1rem;
+  border-radius: 50px;
+  background: var(--gradient-primary);
+  color: white;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(114, 47, 55, 0.3);
+  font-weight: 600;
+}
+
+[data-mic]:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(114, 47, 55, 0.4);
+}
+
+[data-mic]:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+[data-mic].active {
+  background: var(--danger);
+  animation: pulse 1.5s ease-in-out infinite;
+  box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+}
+
+[data-mic]:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Live transcript styling */
+[data-live-transcript] {
+  min-height: 60px;
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin: 20px 0;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+[data-live-transcript]:empty::before {
+  content: "Your speech will appear here...";
+  color: rgba(233, 238, 245, 0.5);
+  font-style: italic;
+}
+
+/* Enhanced status indicator */
+.status-pill {
+  padding: 8px 20px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+/* Speaking animation */
+@keyframes speakingWave {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.speaking-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: #10b981;
+  border-radius: 50%;
+  margin-right: 8px;
+  animation: speakingWave 1s ease-in-out infinite;
+}
+
+/* Listening animation */
+@keyframes listeningPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(114, 47, 55, 0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(114, 47, 55, 0); }
+}
+
+.listening-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  background: var(--wine);
+  border-radius: 50%;
+  margin-right: 8px;
+  animation: listeningPulse 1.5s ease-in-out infinite;
+}
+
+/* Progress bar for recording */
+.recording-progress {
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  margin: 16px 0;
+  overflow: hidden;
+}
+
+.recording-progress-fill {
+  height: 100%;
+  background: var(--wine);
+  width: 0%;
+  transition: width 0.3s ease;
+}
+
+@media (max-width: 800px) { .prep-grid { grid-template-columns: 1fr; } }

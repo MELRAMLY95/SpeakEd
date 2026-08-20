@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/exam.css') }}">{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/recorder.js') }}"></script>
+<script src="{{ url_for('static', filename='js/exam.js') }}"></script>
+{% endblock %}
+{% block body_class %}exam-body{% endblock %}
+{% block title %}Warm-up{% endblock %}
+{% block content %}{% include "exam/_room.html" %}{% endblock %}

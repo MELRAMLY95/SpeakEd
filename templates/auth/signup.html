@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block extra_js %}<script src="{{ url_for('static', filename='js/auth.js') }}"></script>{% endblock %}
+{% block title %}Create account{% endblock %}
+{% block content %}
+<section class="auth-card wrap hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Get started</p>
+    <h1>Create a student account</h1>
+  </div>
+  <form method="post" novalidate data-signup>
+    <label>Name <input type="text" name="name" required minlength="2" autocomplete="name"></label>
+    <label>Email <input type="email" name="email" required autocomplete="email"></label>
+    <label>Password <input type="password" name="password" required minlength="8" autocomplete="new-password"></label>
+    <label>Confirm password <input type="password" name="confirm" required minlength="8" autocomplete="new-password"></label>
+    <button class="btn btn-primary" type="submit">Sign up</button>
+  </form>
+  <p>Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+</section>
+{% endblock %}

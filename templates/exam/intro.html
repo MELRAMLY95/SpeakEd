@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/exam.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/timer.js') }}"></script>
+<script src="{{ url_for('static', filename='js/recorder.js') }}"></script>
+<script src="{{ url_for('static', filename='js/exam.js') }}"></script>
+{% endblock %}
+{% block body_class %}exam-body{% endblock %}
+{% block title %}Speaking examination{% endblock %}
+{% block content %}
+{% if not state or state.stage == 'preparation' or not state %}
+<section class="wrap intro-exam hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Full speaking examination</p>
+    <h1>4XES2 Speaking Exam</h1>
+    <p class="lead">{{ disclaimer }}</p>
+  </div>
+</section>
+<section class="wrap intro-exam">
+  <form method="post" action="{{ url_for('exam.start') }}" class="stack">
+    <input type="hidden" name="exam_type" value="full">
+    <input type="hidden" name="mode" value="full">
+    <label>Topic talk title (Topic 5 Global Issues — your choice)
+      <input name="topic_title" required placeholder="e.g. The effect of social media on teenagers">
+    </label>
+    <label>Optional bullet notes (not full sentences)
+      <textarea name="topic_notes" rows="4" placeholder="key facts, opinions, examples"></textarea>
+    </label>
+    <button class="btn btn-primary" type="submit">Collect cards and begin preparation</button>
+  </form>
+  {% if state and state.stage == 'preparation' %}
+    <div class="prep-grid">
+      <article>
+        <h2>Role play card</h2>
+        <p>{{ state.cards.roleplay.candidate_situation }}</p>
+        <ol>
+          {% for bullet in state.cards.roleplay.candidate_prompts %}
+            <li>{{ bullet }}</li>
+          {% endfor %}
+        </ol>
+        <p class="hint">! = unseen question. ? = you must ask a question.</p>
+      </article>
+      <article>
+        <h2>Picture card · {{ state.cards.picture.title }}</h2>
+        <img src="{{ state.cards.picture.image }}" alt="Picture stimulus">
+        <p>Prepare to describe the picture. Follow-up questions are unseen.</p>
+      </article>
+    </div>
+    <p>You may make notes. Do not use a dictionary. Preparation in the real exam is 10 minutes.</p>
+    <form method="post" action="{{ url_for('exam.begin', attempt_id=state.attempt_id) }}" data-begin-exam>
+      <button class="btn btn-primary" type="submit">I am ready. Start the warm-up.</button>
+    </form>
+  {% endif %}
+</section>
+{% else %}
+  {% include "exam/_room.html" %}
+{% endif %}
+{% endblock %}

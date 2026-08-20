@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Privacy{% endblock %}
+{% block content %}
+<article class="wrap prose">
+  <h1>Privacy</h1>
+  <p>SpeakEd collects account details (name, email, hashed password) so you can sign in and see only your own results.</p>
+  <h2>What we store</h2>
+  <ul>
+    <li>Exam transcripts (text of what you said), scores, feedback, and self-evaluations.</li>
+    <li>Which prompts you have already received, so questions do not repeat.</li>
+    <li>Audio is not stored permanently by default. Microphone audio is processed in the browser for speech-to-text.</li>
+  </ul>
+  <h2>AI providers</h2>
+  <p>The first version uses a local or rule-based examiner. If a local model such as Ollama is running, transcripts may be sent to that local service on your machine. Paid cloud APIs are not required. If an administrator later enables a cloud provider, transcripts would be sent to that provider to generate examiner questions and feedback.</p>
+  <h2>How long</h2>
+  <p>Results remain in your account until the account is removed. SpeakEd is an educational practice tool, not Pearson Edexcel.</p>
+</article>
+{% endblock %}

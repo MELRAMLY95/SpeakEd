@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<section class="wrap dash-hero hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Student dashboard</p>
+    <h1>Welcome, {{ current_user.name }}</h1>
+    <p>{{ disclaimer }}</p>
+    <div class="hero-actions">
+      <a class="btn btn-primary" href="{{ url_for('exam.intro') }}">Start full exam</a>
+    </div>
+  </div>
+</section>
+<section class="wrap stats-grid">
+  <article><h2>Latest</h2><p class="stat">{{ stats.latest if stats.latest is not none else '—' }}{% if stats.latest is not none %}<small>/50</small>{% endif %}</p><p class="stat-label">Most recent score</p></article>
+  <article><h2>Average</h2><p class="stat">{{ stats.average if stats.average is not none else '—' }}</p><p class="stat-label">Overall average</p></article>
+  <article><h2>Highest</h2><p class="stat">{{ stats.highest if stats.highest is not none else '—' }}</p><p class="stat-label">Best performance</p></article>
+  <article><h2>Completed</h2><p class="stat">{{ stats.completed }}</p><p class="stat-label">Total attempts</p></article>
+  <article><h2>Strongest area</h2><p>{{ stats.strongest or 'Not enough data yet' }}</p><p class="stat-label">Best skill area</p></article>
+  <article><h2>Weakest area</h2><p>{{ stats.weakest or 'Not enough data yet' }}</p><p class="stat-label">Needs improvement</p></article>
+  <article><h2>Recent improvement</h2><p>{% if stats.improvement is not none %}{{ stats.improvement }} marks vs first saved full exam{% else %}Take two full exams to see a trend.{% endif %}</p><p class="stat-label">Progress trend</p></article>
+</section>
+<nav class="wrap dash-links">
+  <a href="{{ url_for('practice.home') }}">Practice</a>
+  <a href="{{ url_for('progress.home') }}">My progress</a>
+  <a href="{{ url_for('evaluation.home') }}">Evaluation corner</a>
+  <a href="{{ url_for('progress.history') }}">Past attempts</a>
+  <a href="{{ url_for('evaluation.home') }}">Recommended practice</a>
+</nav>
+{% if stats.recent %}
+<section class="wrap">
+  <h2>Recent attempts</h2>
+  <ul class="attempt-list">
+    {% for row in stats.recent %}
+      <li>
+        <a href="{{ url_for('progress.attempt', attempt_id=row.id) }}">
+          {{ row.exam_type }} · {{ row.mode }} · {{ row.total_score if row.total_score is not none else 'in progress' }}
+          <span>{{ row.started_at[:16].replace('T', ' ') }}</span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-label="Tourists at a harbour">
+  <rect width="640" height="400" fill="#b3e5fc"/>
+  <rect y="220" width="640" height="180" fill="#0288d1"/>
+  <rect x="80" y="180" width="180" height="90" fill="#fff"/>
+  <polygon points="80,180 170,120 260,180" fill="#ef5350"/>
+  <rect x="340" y="200" width="220" height="70" fill="#ffe082"/>
+  <circle cx="390" cy="310" r="18" fill="#6d4c41"/>
+  <circle cx="470" cy="310" r="18" fill="#6d4c41"/>
+  <rect x="370" y="250" width="120" height="50" fill="#8d6e63"/>
+  <circle cx="80" cy="70" r="26" fill="#fff59d"/>
+</svg>

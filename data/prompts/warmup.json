@@ -1,0 +1,16 @@
+{
+  "task": "warmup",
+  "unmarked": true,
+  "prompts": [
+    {"id": "wu01", "category": "settling", "difficulty": "easy", "meaning_key": "day going", "prompt": "How is your day going?"},
+    {"id": "wu02", "category": "weather", "difficulty": "easy", "meaning_key": "weather today", "prompt": "What do you think of the weather today?"},
+    {"id": "wu03", "category": "past", "difficulty": "easy", "meaning_key": "before the test", "prompt": "What did you do before the test today?"},
+    {"id": "wu04", "category": "future", "difficulty": "easy", "meaning_key": "after the test", "prompt": "What are you going to do after the test today?"},
+    {"id": "wu05", "category": "school", "difficulty": "easy", "meaning_key": "school week", "prompt": "What is your favourite part of the school week?"},
+    {"id": "wu06", "category": "hobbies", "difficulty": "easy", "meaning_key": "free time activity", "prompt": "What do you usually do in your free time?"},
+    {"id": "wu07", "category": "family", "difficulty": "easy", "meaning_key": "evening with family", "prompt": "What do you like doing in the evening with your family?"},
+    {"id": "wu08", "category": "daily", "difficulty": "easy", "meaning_key": "morning routine", "prompt": "What is a typical morning like for you on a school day?"},
+    {"id": "wu09", "category": "interests", "difficulty": "easy", "meaning_key": "weekend plans", "prompt": "What do you enjoy doing at the weekend?"},
+    {"id": "wu10", "category": "school", "difficulty": "easy", "meaning_key": "school subject", "prompt": "Which school subject do you enjoy most at the moment?"}
+  ]
+}

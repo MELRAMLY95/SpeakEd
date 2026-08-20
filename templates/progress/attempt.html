@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/progress.css') }}">{% endblock %}
+{% block title %}Attempt {{ attempt.id }}{% endblock %}
+{% block content %}
+<article class="wrap">
+  <h1>{{ attempt.exam_type }} · {{ attempt.mode }}</h1>
+  <p>Date: {{ attempt.started_at[:16].replace('T', ' ') }} · Score: {{ attempt.total_score if attempt.total_score is not none else '—' }}</p>
+  {% if marking %}
+    <p>Role play {{ marking.roleplay.score }}/10 · Topic {{ marking.topic_talk.score }}/20 · Picture {{ marking.picture.score }}/20</p>
+  {% endif %}
+  {% if feedback %}
+    <h2>Feedback</h2>
+    <p>{{ feedback.examiner_comments }}</p>
+  {% endif %}
+  {% if self_eval %}
+    <h2>Self-evaluation</h2>
+    <p>Confidence {{ self_eval.confidence }}/5 · Fluency {{ self_eval.fluency }}/5 · Difficulty {{ self_eval.difficulty }}/5 · Satisfaction {{ self_eval.satisfaction }}/5</p>
+    <p>{{ self_eval.struggled_with }}</p>
+    <p>{{ self_eval.improve_next }}</p>
+  {% endif %}
+  <h2>Transcript</h2>
+  {% for turn in transcripts %}
+    <p><strong>{{ turn.speaker }}</strong> ({{ turn.stage }}): {{ turn.text }}</p>
+  {% endfor %}
+</article>
+{% endblock %}

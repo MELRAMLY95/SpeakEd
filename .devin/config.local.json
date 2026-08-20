@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(ls)",
+      "Exec(Get-ChildItem)",
+      "Exec(pip install)",
+      "Exec(python)",
+      "Exec(Remove-Item)",
+      "Exec(git status)",
+      "Exec(move)",
+      "Exec(Move-Item)",
+      "Exec(git init)",
+      "Exec(git add)"
+    ]
+  }
+}

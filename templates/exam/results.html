@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/exam.css') }}">{% endblock %}
+{% block title %}Practice result{% endblock %}
+{% block content %}
+<article class="wrap results">
+  <h1>4XES2 speaking practice result</h1>
+  <p class="notice">{{ disclaimer }}</p>
+  {% if attempt.exam_type == 'full' or attempt.exam_type == 'roleplay' %}
+    <p>Role play: <strong>{{ attempt.roleplay_score if attempt.roleplay_score is not none else '—' }}/10</strong></p>
+  {% endif %}
+  {% if attempt.exam_type == 'full' or attempt.exam_type == 'topic_talk' %}
+    <p>Topic talk: <strong>{{ attempt.topic_talk_score if attempt.topic_talk_score is not none else '—' }}/20</strong></p>
+  {% endif %}
+  {% if attempt.exam_type == 'full' or attempt.exam_type == 'picture' %}
+    <p>Picture-based conversation: <strong>{{ attempt.picture_score if attempt.picture_score is not none else '—' }}/20</strong></p>
+  {% endif %}
+  <p class="total">Total: <strong>{{ attempt.total_score if attempt.total_score is not none else '—' }}{% if attempt.exam_type == 'full' %}/50{% endif %}</strong></p>
+  <h2>Strongest area</h2>
+  <p>{{ attempt.strongest_area }}</p>
+  <h2>Weakest area</h2>
+  <p>{{ attempt.weakest_area }}</p>
+  {% if feedback %}
+    <h2>Examiner feedback</h2>
+    <ul>{% for item in feedback.strengths %}<li>{{ item }}</li>{% endfor %}</ul>
+    <ul>{% for item in feedback.weaknesses %}<li>{{ item }}</li>{% endfor %}</ul>
+    <h2>Recommended next step</h2>
+    <ul>{% for item in feedback.recommendations %}<li>{{ item }}</li>{% endfor %}</ul>
+    <pre class="comments">{{ feedback.examiner_comments }}</pre>
+  {% endif %}
+  <p>
+    <a class="btn btn-primary" href="{{ url_for('evaluation.self_eval', attempt_id=attempt.id) }}">Complete self-evaluation</a>
+    <a class="btn btn-ghost" href="{{ url_for('progress.attempt', attempt_id=attempt.id) }}">Review transcript</a>
+  </p>
+</article>
+{% endblock %}

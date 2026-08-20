@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Account{% endblock %}
+{% block content %}
+<section class="auth-card wrap hero">
+  <div class="geo-shape geo-shape-1"></div>
+  <div class="geo-shape geo-shape-2"></div>
+  <div class="geo-shape geo-shape-3"></div>
+  <div class="hero-content">
+    <p class="eyebrow">Account settings</p>
+    <h1>Manage your account</h1>
+  </div>
+  <form method="post">
+    <label>Name <input type="text" name="name" value="{{ current_user.name }}" required></label>
+    <p>Email cannot be changed here: {{ current_user.email }}</p>
+    <label>Current password (needed to change password)
+      <input type="password" name="current_password" autocomplete="current-password">
+    </label>
+    <label>New password
+      <input type="password" name="new_password" minlength="8" autocomplete="new-password">
+    </label>
+    <button class="btn btn-primary" type="submit">Save</button>
+  </form>
+</section>
+{% endblock %}

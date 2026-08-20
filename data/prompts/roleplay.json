@@ -1,0 +1,205 @@
+{
+  "task": "roleplay",
+  "cards": [
+    {
+      "id": "rp01",
+      "title": "Making plans with a friend",
+      "topic_area": "Myself and others",
+      "category": "leisure",
+      "difficulty": "easy",
+      "meaning_key": "cinema plans with friend",
+      "register": "informal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are talking to your friend. You want to go to the cinema together to see a film. I am your friend. I will speak first.",
+      "candidate_situation": "You are talking to your friend. You want to go to the cinema together to see a film. The examiner will play the role of your friend and will speak first.",
+      "candidate_prompts": [
+        "Cinema – how often",
+        "Film – type",
+        "!",
+        "Food – what",
+        "? Cinema – price"
+      ],
+      "examiner_prompts": [
+        {"spoken": "How often do you go to the cinema?", "unseen": false, "ask_question": false},
+        {"spoken": "What type of film do you want to see?", "unseen": false, "ask_question": false},
+        {"spoken": "When do you want to go to the cinema?", "unseen": true, "ask_question": false},
+        {"spoken": "We should have something to eat before the film. What do you want to eat?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "The tickets are eight pounds each."}
+      ]
+    },
+    {
+      "id": "rp02",
+      "title": "Booking transport",
+      "topic_area": "Travel and tourism",
+      "category": "travel",
+      "difficulty": "medium",
+      "meaning_key": "buy train tickets",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are at a train station. You want to buy tickets for a train. I am the ticket assistant. I will speak first.",
+      "candidate_situation": "You are at a train station. You want to buy tickets for a train. The examiner will play the role of the ticket assistant.",
+      "candidate_prompts": [
+        "Train – where to",
+        "Tickets – how many",
+        "!",
+        "Return – when",
+        "? Train – time"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Hello. Where do you want to travel to today?", "unseen": false, "ask_question": false},
+        {"spoken": "How many tickets do you need?", "unseen": false, "ask_question": false},
+        {"spoken": "What are you going to do there?", "unseen": true, "ask_question": false},
+        {"spoken": "What day do you want to return?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "The train leaves at half past nine."}
+      ]
+    },
+    {
+      "id": "rp03",
+      "title": "After-school activities",
+      "topic_area": "Education",
+      "category": "school",
+      "difficulty": "easy",
+      "meaning_key": "after school club with friend",
+      "register": "informal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are talking to a friend about after-school clubs. I am your friend. I will speak first.",
+      "candidate_situation": "You are talking to a friend about after-school activities that you take part in. The examiner will play the role of your friend and will speak first.",
+      "candidate_prompts": [
+        "After-school club – what",
+        "After-school club – how often",
+        "!",
+        "After-school club – opinion",
+        "? After-school club – invite your friend"
+      ],
+      "examiner_prompts": [
+        {"spoken": "What is your favourite after-school club?", "unseen": false, "ask_question": false},
+        {"spoken": "How often do you go to the after-school club?", "unseen": false, "ask_question": false},
+        {"spoken": "Who do you go to the after-school club with?", "unseen": true, "ask_question": false},
+        {"spoken": "What do you enjoy about the after-school club?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "Yes, I would like to come next week."}
+      ]
+    },
+    {
+      "id": "rp04",
+      "title": "Job application",
+      "topic_area": "Employment",
+      "category": "work",
+      "difficulty": "medium",
+      "meaning_key": "supermarket job interview",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You want a job in a supermarket. You are speaking to the manager. I will play the role of the manager. I will speak first.",
+      "candidate_situation": "You want a job in a supermarket. You are speaking to the manager.",
+      "candidate_prompts": [
+        "Job – why",
+        "Days – which",
+        "!",
+        "Travel – how",
+        "? Job – start when"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Why do you want a job at this supermarket?", "unseen": false, "ask_question": false},
+        {"spoken": "What days of the week can you work?", "unseen": false, "ask_question": false},
+        {"spoken": "How many hours can you work each week?", "unseen": true, "ask_question": false},
+        {"spoken": "How will you travel to work?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "You could start on Monday morning."}
+      ]
+    },
+    {
+      "id": "rp05",
+      "title": "Doctor appointment",
+      "topic_area": "Myself and others",
+      "category": "health",
+      "difficulty": "medium",
+      "meaning_key": "book doctor appointment",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are at a doctor's reception. You want to make an appointment. I am the receptionist. I will speak first.",
+      "candidate_situation": "You are at a doctor's reception. You want to make an appointment. The examiner is the receptionist.",
+      "candidate_prompts": [
+        "Appointment – reason",
+        "Day – preference",
+        "!",
+        "Time – morning or afternoon",
+        "? Appointment – how long"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Good morning. How can I help you?", "unseen": false, "ask_question": false},
+        {"spoken": "Which day would be better for you?", "unseen": false, "ask_question": false},
+        {"spoken": "Have you been to this clinic before?", "unseen": true, "ask_question": false},
+        {"spoken": "Would you prefer morning or afternoon?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "The appointment usually lasts about fifteen minutes."}
+      ]
+    },
+    {
+      "id": "rp06",
+      "title": "Hotel booking",
+      "topic_area": "Travel and tourism",
+      "category": "travel",
+      "difficulty": "medium",
+      "meaning_key": "book hotel room",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are booking a hotel room. I am the hotel receptionist. I will speak first.",
+      "candidate_situation": "You are booking a hotel room for a short trip. The examiner is the receptionist.",
+      "candidate_prompts": [
+        "Stay – how many nights",
+        "Room – type",
+        "!",
+        "Breakfast – yes or no",
+        "? Hotel – facilities"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Hello. How many nights would you like to stay?", "unseen": false, "ask_question": false},
+        {"spoken": "What type of room would you like?", "unseen": false, "ask_question": false},
+        {"spoken": "Is the booking for one person or more?", "unseen": true, "ask_question": false},
+        {"spoken": "Would you like breakfast included?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "There is a swimming pool and free wifi."}
+      ]
+    },
+    {
+      "id": "rp07",
+      "title": "School project meeting",
+      "topic_area": "Education",
+      "category": "school",
+      "difficulty": "easy",
+      "meaning_key": "arrange school project meeting",
+      "register": "informal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are talking to a classmate about a school project. I am your classmate. I will speak first.",
+      "candidate_situation": "You are arranging a meeting with a classmate to work on a school project.",
+      "candidate_prompts": [
+        "Project – subject",
+        "Meeting – when",
+        "!",
+        "Place – where",
+        "? Project – materials"
+      ],
+      "examiner_prompts": [
+        {"spoken": "What is our project about?", "unseen": false, "ask_question": false},
+        {"spoken": "When can we meet this week?", "unseen": false, "ask_question": false},
+        {"spoken": "How long do you think we will need?", "unseen": true, "ask_question": false},
+        {"spoken": "Where should we meet?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "I can bring coloured paper and a laptop."}
+      ]
+    },
+    {
+      "id": "rp08",
+      "title": "Work experience enquiry",
+      "topic_area": "Employment",
+      "category": "work",
+      "difficulty": "difficult",
+      "meaning_key": "ask about work experience",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are asking about work experience at a local company. I am the office manager. I will speak first.",
+      "candidate_situation": "You are asking about a week of work experience at a local company. The examiner is the office manager.",
+      "candidate_prompts": [
+        "Work experience – why interested",
+        "Dates – when free",
+        "!",
+        "Skills – what you can do",
+        "? Work – dress code"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Why are you interested in work experience with us?", "unseen": false, "ask_question": false},
+        {"spoken": "Which week are you free?", "unseen": false, "ask_question": false},
+        {"spoken": "Have you done any work like this before?", "unseen": true, "ask_question": false},
+        {"spoken": "What skills can you bring to the office?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "Please wear smart clothes, but you do not need a suit."}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,77 @@
+{
+  "task": "picture",
+  "cards": [
+    {
+      "id": "pt01",
+      "title": "Homes and Living Spaces",
+      "topic_area": "Myself and others",
+      "difficulty": "medium",
+      "meaning_key": "homes and living spaces",
+      "image": "/static/images/pictures/homes.jpg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of homes and living spaces.",
+      "examiner_prompts": [
+        {"id": "pt01a", "spoken": "Describe the photo in as much detail as possible.", "type": "describe"},
+        {"id": "pt01b", "spoken": "Tell me about the home you lived in when you were younger. What was it like, and how does it compare to where you live now?", "type": "experience"},
+        {"id": "pt01c", "spoken": "What type of home would you like to live in when you are older, and why would you choose that particular style?", "type": "future"},
+        {"id": "pt01d", "spoken": "Some people believe that having an outside space or garden at home is essential for quality of life. To what extent do you agree or disagree?", "type": "opinion"},
+        {"id": "pt01e", "spoken": "How do you think homes and living spaces might change in the next twenty years, considering factors like technology and environmental concerns?", "type": "speculate"},
+        {"id": "pt01f", "spoken": "In your opinion, what are the most important features to consider when choosing a home?", "type": "opinion"},
+        {"id": "pt01g", "spoken": "Do you have a question for me about homes or living spaces?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt02",
+      "title": "Travel and Tourism",
+      "topic_area": "Travel and tourism",
+      "difficulty": "medium",
+      "meaning_key": "tourist activities holiday",
+      "image": "/static/images/pictures/tourism.jpg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of travel and tourism.",
+      "examiner_prompts": [
+        {"id": "pt02a", "spoken": "Describe the photo, focusing on what you can see and the atmosphere it suggests.", "type": "describe"},
+        {"id": "pt02b", "spoken": "Where did you spend your school holidays last year, and what made that particular trip memorable or special?", "type": "experience"},
+        {"id": "pt02c", "spoken": "If you could travel anywhere in the world for a holiday, where would you choose and what aspects of that destination appeal to you most?", "type": "future"},
+        {"id": "pt02d", "spoken": "Some people argue that international tourism has more negative effects than positive ones on local communities. What are your views on this?", "type": "opinion"},
+        {"id": "pt02e", "spoken": "Compare and contrast the experience of visiting a foreign country versus exploring your own country as a tourist.", "type": "compare"},
+        {"id": "pt02f", "spoken": "What advice would you give to someone who is planning their first trip to a country with a very different culture from their own?", "type": "advice"},
+        {"id": "pt02g", "spoken": "Do you have a question for me about travel or tourism?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt03",
+      "title": "Education and Learning",
+      "topic_area": "Education",
+      "difficulty": "medium",
+      "meaning_key": "school life classroom learning",
+      "image": "/static/images/pictures/school.jpg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of education and learning.",
+      "examiner_prompts": [
+        {"id": "pt03a", "spoken": "Describe the photo, paying attention to the activities and relationships you can observe.", "type": "describe"},
+        {"id": "pt03b", "spoken": "Tell me about a typical school day for you, including both academic subjects and any extra-curricular activities you participate in.", "type": "experience"},
+        {"id": "pt03c", "spoken": "In what ways do you think education could be improved for students your age, considering both curriculum and teaching methods?", "type": "opinion"},
+        {"id": "pt03d", "spoken": "Some educators believe that homework is essential for academic success, while others argue it causes unnecessary stress. What is your perspective?", "type": "opinion"},
+        {"id": "pt03e", "spoken": "How do you think classrooms and learning environments might change in the next ten years, particularly with advances in technology?", "type": "speculate"},
+        {"id": "pt03f", "spoken": "Compare the benefits of learning in a traditional classroom setting versus learning through online platforms.", "type": "compare"},
+        {"id": "pt03g", "spoken": "Do you have a question for me about education or learning?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt04",
+      "title": "Working Life and Careers",
+      "topic_area": "Employment",
+      "difficulty": "medium",
+      "meaning_key": "people at work jobs careers",
+      "image": "/static/images/pictures/work.jpg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of working life and careers.",
+      "examiner_prompts": [
+        {"id": "pt04a", "spoken": "Describe the photo, focusing on the people, their activities, and the work environment you can see.", "type": "describe"},
+        {"id": "pt04b", "spoken": "Have you ever done any work experience, volunteering, or helped in a family business? What did you learn from that experience?", "type": "experience"},
+        {"id": "pt04c", "spoken": "What career or job would you like to pursue in the future, and what factors have influenced this choice?", "type": "future"},
+        {"id": "pt04d", "spoken": "Discuss the advantages and disadvantages of working from home compared to working in a traditional office environment.", "type": "compare"},
+        {"id": "pt04e", "spoken": "Do you think young people should gain work experience before attending university, and why might this be beneficial or problematic?", "type": "opinion"},
+        {"id": "pt04f", "spoken": "How do you think the job market and types of careers available might change in the next twenty years?", "type": "speculate"},
+        {"id": "pt04g", "spoken": "Do you have a question for me about working life or careers?", "type": "ask"}
+      ]
+    }
+  ]
+}

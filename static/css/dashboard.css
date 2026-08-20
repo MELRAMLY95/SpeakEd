@@ -1,0 +1,37 @@
+.dash-hero { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding-top: 48px; }
+.dash-hero h1 { margin: 0; background: var(--gradient-primary); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-size: 2.5rem; }
+.dash-hero p { color: var(--muted); max-width: 48ch; font-size: 1.1rem; }
+.dash-hero .btn { padding: 16px 32px; font-size: 1.1rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; }
+.stats-grid article { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px; transition: all 0.3s ease; position: relative; overflow: hidden; }
+.stats-grid article::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: var(--gradient-primary); transform: scaleX(0); transition: transform 0.3s ease; }
+.stats-grid article:hover::before { transform: scaleX(1); }
+.stats-grid article:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+.stat { font-size: 2.5rem; margin: 0; font-family: Fraunces, serif; background: var(--gradient-gold); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+.stat-label { font-size: 0.9rem; color: var(--muted); margin-top: 8px; font-weight: 600; }
+.stats-grid article h2 { margin: 0 0 12px 0; color: var(--ink); font-size: 1.1rem; }
+.dash-links { display: flex; gap: 16px; flex-wrap: wrap; margin: 40px 0; }
+.dash-links a { background: #fff; border: 2px solid var(--line); border-radius: 999px; padding: 16px 28px; text-decoration: none; color: var(--ink); transition: all 0.3s ease; font-weight: 600; font-size: 1rem; }
+.dash-links a:hover { border-color: var(--wine); color: var(--wine); transform: translateY(-3px); box-shadow: 0 8px 25px rgba(114, 47, 55, 0.2); }
+.attempt-list { list-style: none; padding: 0; }
+.attempt-list a { display: flex; justify-content: space-between; padding: 20px 0; border-bottom: 2px solid var(--line); text-decoration: none; color: var(--ink); transition: all 0.3s ease; font-size: 1.05rem; }
+.attempt-list a:hover { padding-left: 16px; border-bottom-color: var(--wine); color: var(--wine); background: rgba(114, 47, 55, 0.03); }
+
+/* Dashboard cards enhancement */
+.dash-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 32px; margin-top: 40px; box-shadow: var(--shadow); }
+.dash-card h3 { margin-top: 0; color: var(--ink); font-size: 1.5rem; }
+
+/* Animated counter */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stat-animate { animation: countUp 0.6s ease-out; }
+
+@media (max-width: 800px) { 
+  .dash-hero { flex-direction: column; text-align: center; }
+  .dash-hero .btn { width: 100%; max-width: 400px; }
+  .stats-grid { grid-template-columns: 1fr 1fr; }
+  .dash-links { justify-content: center; }
+  .dash-links a { width: 100%; max-width: 300px; text-align: center; }
+}
