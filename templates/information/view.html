@@ -2,29 +2,27 @@
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/information.css') }}">{% endblock %}
 {% block title %}{{ info.topic }}{% endblock %}
 {% block content %}
-<section class="wrap">
+<section class="wrap info-section">
   <div class="page-header">
-    <a class="btn btn-ghost" href="{{ url_for('information.home') }}">← Back to Information</a>
-    <h1>{{ info.topic }}</h1>
-    <div class="info-meta">
-      <small>Created: {{ info.created_at[:16].replace('T', ' ') }}</small>
-      {% if info.updated_at != info.created_at %}
-      <small>Updated: {{ info.updated_at[:16].replace('T', ' ') }}</small>
-      {% endif %}
+    <div class="header-content">
+      <a class="btn btn-ghost" href="{{ url_for('information.home') }}">← Back to Information</a>
+      <h1>{{ info.topic }}</h1>
+    </div>
+    <div class="header-actions">
+      <a class="btn btn-ghost" href="{{ url_for('information.edit', info_id=info.id) }}">Edit</a>
+      <form class="delete-form" method="POST" action="{{ url_for('information.delete', info_id=info.id) }}" onsubmit="return confirm('Are you sure you want to delete this information?');">
+        <button type="submit" class="btn btn-ghost">Delete</button>
+      </form>
     </div>
   </div>
 
   <div class="info-content">
-    <div class="info-text">
-      {{ info.information|replace('\n', '<br>')|safe }}
-    </div>
+    <div class="info-text">{{ info.information|replace('\n', '<br>')|safe }}</div>
   </div>
 
   <div class="info-actions">
-    <a class="btn btn-primary" href="{{ url_for('information.edit', info_id=info.id) }}">Edit</a>
-    <form class="delete-form" method="POST" action="{{ url_for('information.delete', info_id=info.id) }}" onsubmit="return confirm('Are you sure you want to delete this information?');">
-      <button type="submit" class="btn btn-ghost">Delete</button>
-    </form>
+    <a class="btn btn-primary" href="{{ url_for('information.edit', info_id=info.id) }}">Edit Information</a>
+    <a class="btn btn-ghost" href="{{ url_for('information.home') }}">Back to List</a>
   </div>
 </section>
 {% endblock %}

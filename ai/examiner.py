@@ -43,7 +43,7 @@ class ExamEngine:
     def __init__(self, bank: PromptBank | None = None):
         self.bank = bank or PromptBank()
 
-    def start(self, user_id: int, exam_type: str, mode: str, topic_title: str = "", topic_notes: str = "", picture_id: str = "") -> dict:
+    def start(self, user_id: int, exam_type: str, mode: str, topic_title: str = "", topic_notes: str = "") -> dict:
         exam_type = exam_type if exam_type in {"full", "roleplay", "topic_talk", "picture"} else "full"
         mode = "practice" if mode == "practice" else "full"
         payload = {
@@ -57,10 +57,7 @@ class ExamEngine:
             payload["roleplay"] = self.bank.choose_roleplay(user_id)
         if exam_type in {"full", "picture"}:
             avoid = payload.get("roleplay", {}).get("topic_area")
-            if picture_id:
-                payload["picture"] = self.bank.choose_picture_by_id(picture_id)
-            else:
-                payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
+            payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
         if exam_type in {"full", "topic_talk"}:
             title = topic_title.strip() or "your chosen Global Issues topic"
             payload["topic_followups"] = self.bank.choose_topic_followups(user_id, title)
@@ -126,12 +123,25 @@ class ExamEngine:
         stage = attempt["stage"]
         metrics_summary = summarise_metrics(metrics)
         text = (transcript or "").strip()
+
+        # THE FIX: capture which prompt is actually being answered BEFORE
+        # appending the new turn. _current_prompt() determines "current" by
+        # counting how many student turns already exist in this stage --
+        # calling it AFTER appending (the old order) meant it counted the
+        # answer that was just given and returned the NEXT prompt instead,
+        # so every stored prompt_id was one question ahead of the answer it
+        # was attached to. This silently broke every downstream feature that
+        # pairs an answer with its question (marking prompts, feedback
+        # grounding, practice notes).
+        answered_prompt = self._current_prompt(payload, stage)
+
         payload.setdefault("turns", []).append(
             {
                 "stage": stage,
                 "speaker": "student",
                 "text": text,
                 "metrics": metrics_summary,
+                "prompt_id": (answered_prompt or {}).get("id"),
                 "at": _now(),
             }
         )
@@ -142,7 +152,7 @@ class ExamEngine:
                 attempt_id,
                 stage,
                 len(payload["turns"]),
-                (self._current_prompt(payload, stage) or {}).get("id"),
+                (answered_prompt or {}).get("id"),
                 text,
                 metrics_summary.get("duration_ms"),
                 json.dumps(metrics_summary),
@@ -151,7 +161,7 @@ class ExamEngine:
         )
         coaching = None
         if attempt["mode"] == "practice" and stage != "warmup":
-            coaching = self._practice_note(text, stage)
+            coaching = self._practice_note(text, stage, answered_prompt)
         next_stage = self._advance(payload, stage, attempt["exam_type"])
         _save_payload(attempt_id, payload, stage=next_stage)
         state = self.state(attempt_id, user_id)
@@ -166,36 +176,7 @@ class ExamEngine:
         payload = _payload(attempt)
         marking = mark_attempt(attempt_id, self._marking_payload(payload))
         transcripts = [dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
-        feedback = build_feedback(attempt_id, marking, transcripts)
-        
-        # Save marking to database
-        execute(
-            """INSERT OR REPLACE INTO markings (attempt_id, analysis_json, scores_json, justification_json, created_at)
-               VALUES (?, ?, ?, ?, ?)""",
-            (
-                attempt_id,
-                json.dumps(marking.get("analyses", {})),
-                json.dumps(marking.get("scores", {})),
-                json.dumps(marking.get("justification", "")),
-                _now(),
-            ),
-        )
-        
-        # Save feedback to database
-        execute(
-            """INSERT OR REPLACE INTO feedback (attempt_id, strengths_json, weaknesses_json, lost_marks_json, recommendations_json, examiner_comments, created_at)
-               VALUES (?, ?, ?, ?, ?, ?, ?)""",
-            (
-                attempt_id,
-                json.dumps(feedback.get("strengths", [])),
-                json.dumps(feedback.get("weaknesses", [])),
-                json.dumps(feedback.get("lost_marks", [])),
-                json.dumps(feedback.get("recommendations", [])),
-                feedback.get("examiner_comments", ""),
-                _now(),
-            ),
-        )
-        
+        feedback = build_feedback(attempt_id, marking, transcripts, payload)
         execute(
             """UPDATE attempts SET status='completed', stage='complete', completed_at=?,
                roleplay_score=?, topic_talk_score=?, picture_score=?, total_score=?,
@@ -342,14 +323,33 @@ class ExamEngine:
 
         def student(stage):
             items = [t for t in turns if t.get("stage") == stage and t.get("speaker") == "student"]
-            card = payload.get("roleplay") or {}
-            prompts = card.get("examiner_prompts") or []
+            roleplay_card = payload.get("roleplay") or {}
+            roleplay_prompts = roleplay_card.get("examiner_prompts") or []
+            picture_card = payload.get("picture") or {}
+            picture_prompts = picture_card.get("examiner_prompts") or []
+            topic_followups = payload.get("topic_followups") or []
             out = []
             for i, t in enumerate(items):
                 requires = False
-                if stage == "roleplay" and i < len(prompts):
-                    requires = bool(prompts[i].get("ask_question"))
-                out.append({"text": t.get("text", ""), "metrics": t.get("metrics") or {}, "requires_question": requires})
+                question = ""
+                if stage == "roleplay" and i < len(roleplay_prompts):
+                    requires = bool(roleplay_prompts[i].get("ask_question"))
+                    question = roleplay_prompts[i].get("spoken", "")
+                elif stage == "topic_talk":
+                    prompt_id = t.get("prompt_id")
+                    if prompt_id == "topic-start":
+                        question = "Deliver your topic talk."
+                    else:
+                        question = next((q.get("prompt", "") for q in topic_followups if q.get("id") == prompt_id), "")
+                elif stage == "picture":
+                    prompt_id = t.get("prompt_id")
+                    question = next((p.get("spoken", "") for p in picture_prompts if p.get("id") == prompt_id), "")
+                out.append({
+                    "text": t.get("text", ""),
+                    "metrics": t.get("metrics") or {},
+                    "requires_question": requires,
+                    "question": question,
+                })
             return out
 
         # Ensure we only get turns for stages that were actually attempted
@@ -360,16 +360,17 @@ class ExamEngine:
             "picture_turns": student("picture") if payload.get("picture") else [],
         }
 
-    def _practice_note(self, text: str, stage: str) -> str:
+    def _practice_note(self, text: str, stage: str, prompt: dict | None = None) -> str:
         """Generate dynamic, content-aware practice feedback using AI if available."""
         ai = get_ai()
         if ai and ai.is_available():
-            return self._practice_note_with_ai(text, stage, ai)
+            return self._practice_note_with_ai(text, stage, ai, prompt)
         
         # Fallback to rule-based feedback
         words = text.split()
         word_count = len(words)
         text_lower = text.lower()
+        question_text = (prompt or {}).get("display") or (prompt or {}).get("spoken") or ""
         
         # Sophisticated content analysis
         feedback_messages = []
@@ -384,15 +385,19 @@ class ExamEngine:
         
         # Content analysis based on stage
         if stage == "roleplay":
-            if "?" in text:
-                feedback_messages.append("Good job asking your question as required.")
-            else:
-                feedback_messages.append("Remember to ask questions when the prompt includes a question mark.")
+            # Only this specific prompt's actual requirement matters -- most
+            # roleplay prompts do NOT require a question, so checking for
+            # "?" unconditionally on every turn (the previous behaviour)
+            # produced an irrelevant note on 4 out of 5 answers.
+            requires_question = bool((prompt or {}).get("ask_question"))
+            if requires_question:
+                if "?" in text:
+                    feedback_messages.append("Good job asking your question as required by this prompt.")
+                else:
+                    feedback_messages.append("This prompt required you to ask a question — remember to do that next time.")
             
             if "please" in text_lower or "could you" in text_lower:
                 feedback_messages.append("Polite language is appropriate for role-play situations.")
-            else:
-                feedback_messages.append("Consider using polite phrases like 'please' or 'could you' in role-play.")
         
         elif stage == "topic_talk":
             if "because" in text_lower:
@@ -419,32 +424,41 @@ class ExamEngine:
             else:
                 feedback_messages.append("Try to speculate about what might be happening using 'might' or 'could'.")
         
-        return " ".join(feedback_messages) if feedback_messages else "Good response. Keep practicing to improve your speaking skills."
+        if not feedback_messages:
+            return "Good response. Keep practicing to improve your speaking skills."
+        if question_text:
+            return f"(On \"{question_text}\") " + " ".join(feedback_messages)
+        return " ".join(feedback_messages)
     
-    def _practice_note_with_ai(self, text: str, stage: str, ai) -> str:
+    def _practice_note_with_ai(self, text: str, stage: str, ai, prompt: dict | None = None) -> str:
         """Use AI to generate personalized practice feedback."""
         stage_context = {
             "roleplay": "Task 1 Role Play: Student is in a specific role-play situation",
             "topic_talk": "Task 2 Topic Talk: Student is presenting on a chosen topic",
             "picture": "Task 3 Picture Conversation: Student is discussing a photograph"
         }.get(stage, "Speaking practice")
-        
-        prompt = f"""You are an IGCSE English as a Second Language examiner giving brief, helpful feedback during practice.
+
+        question_text = (prompt or {}).get("display") or (prompt or {}).get("spoken") or "(question not available)"
+        requirement_note = ""
+        if stage == "roleplay" and (prompt or {}).get("ask_question"):
+            requirement_note = "\nIMPORTANT: This specific prompt required the student to ask a question of the examiner."
+
+        prompt_text = f"""You are an IGCSE English as a Second Language examiner giving brief, helpful feedback during practice.
 
 CONTEXT: {stage_context}
+EXAMINER ASKED: "{question_text}"{requirement_note}
 STUDENT RESPONSE: "{text}"
 
 Provide ONE concise, encouraging feedback comment (max 25 words) that:
+- Is specific to what they said in response to THIS question (not a generic comment that could apply to any answer)
 - Identifies one strength OR one area for improvement
-- Is specific to what they said
 - Is constructive and helpful
 - References IGCSE criteria where relevant
 
 Return ONLY the feedback comment, no other text."""
 
         try:
-            return ai.generate_text(prompt, max_tokens=50, temperature=0.7).strip()
+            return ai.generate_text(prompt_text, max_tokens=50, temperature=0.7).strip()
         except Exception as e:
             print(f"AI practice note failed: {e}")
             return "Good response. Keep practicing to improve your speaking skills."
-

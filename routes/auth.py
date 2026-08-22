@@ -58,20 +58,15 @@ def signup():
                 flash(item, "error")
             return render_template("auth/signup.html")
         stamp = _now().isoformat()
-        password_hash = generate_password_hash(password)
-        cursor = execute(
+        execute(
             "INSERT INTO users (name, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
-            (name, email, password_hash, stamp, stamp),
+            (name, email, generate_password_hash(password), stamp, stamp),
         )
-        user_id = cursor.lastrowid if cursor else None
-        if user_id:
-            session.clear()
-            session["user_id"] = user_id
-            session.permanent = True
-            return redirect(url_for("dashboard.home"))
-        else:
-            flash("Error creating account. Please try again.", "error")
-            return render_template("auth/signup.html")
+        user = query_one("SELECT id FROM users WHERE email = ?", (email,))
+        session.clear()
+        session["user_id"] = user["id"]
+        session.permanent = True
+        return redirect(url_for("dashboard.home"))
     return render_template("auth/signup.html")
 
 

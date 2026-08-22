@@ -1,17 +1,19 @@
 import json
+import logging
 import re
-import random
 from datetime import datetime, timezone
 from pathlib import Path
 
 from database.database import execute
 from ai.ai_provider import get_ai
 
+logger = logging.getLogger(__name__)
+
 SCHEME_PATH = Path(__file__).resolve().parents[1] / "data" / "mark_scheme" / "4XES2_mark_scheme.json"
 
 FILLERS = {"um", "uh", "er", "erm", "like", "you know", "kind of", "sort of"}
 DEVELOPMENT = {"because", "for example", "for instance", "therefore", "however", "although", "so that", "since", "due to"}
-COMPLEX = {"because", "although", "which", "that", "if", "when", "while", "whereas", "unless", "despite", "despite", "providing that"}
+COMPLEX = {"because", "although", "which", "that", "if", "when", "while", "whereas", "unless", "despite", "providing that"}
 WEAK_EXPRESSIONS = {"i think", "maybe", "perhaps", "i guess", "probably", "kind of", "sort of"}
 STRONG_EXPRESSIONS = {"certainly", "definitely", "clearly", "obviously", "undoubtedly", "without doubt"}
 CONNECTORS = {"moreover", "furthermore", "in addition", "additionally", "on the other hand", "consequently", "as a result"}
@@ -42,10 +44,7 @@ def analyse_text(text: str, metrics: dict | None = None) -> dict:
     avg_word_length = sum(len(w) for w in words) / len(words) if words else 0
     sentence_variety = len(set(len(s.split()) for s in sentences)) if sentences else 0
     lower_words = set(words)
-    has_examples = (
-        any(phrase in clean.lower() for phrase in ["for example", "for instance", "such as"])
-        or "like" in lower_words
-    )
+    has_examples = any(phrase in clean.lower() for phrase in ["for example", "for instance", "such as"])
     # NOTE: "as" and "so" must be matched as whole words, not substrings —
     # `"as" in clean.lower()` used to match inside "was", "reason", "phase",
     # "increase" etc. and made has_reasoning true almost regardless of
@@ -106,84 +105,98 @@ def _clip(value: int, low: int, high: int) -> int:
     return max(low, min(high, value))
 
 
+def _scheme_lines(bands: list[dict]) -> str:
+    lines = []
+    for band in bands:
+        if "mark" in band:
+            heading = f"{band['mark']} marks"
+        elif band["min"] == band["max"]:
+            heading = f"{band['min']} marks"
+        else:
+            heading = f"{band['min']}-{band['max']} marks"
+        lines.append(f"{heading}: {band['descriptor']}")
+    return "\n".join(lines)
+
+
+def _format_qa(turns: list[dict]) -> str:
+    blocks = []
+    for index, turn in enumerate(turns, start=1):
+        question = (turn.get("question") or "").strip() or "(question not recorded)"
+        answer = (turn.get("text") or "").strip() or "(no response)"
+        blocks.append(f"Turn {index}\nExaminer: {question}\nStudent: {answer}")
+    return "\n\n".join(blocks) or "(no student turns)"
+
+
+def _apply_roleplay_guards(mark: int, analysis: dict, requires_question: bool) -> int:
+    """Keep AI marks from contradicting hard 4XES2 Task 1 rules."""
+    word_count = analysis["word_count"]
+    if word_count == 0:
+        return 0
+    if requires_question and not analysis["asked_question"]:
+        return 0
+    if word_count == 1:
+        return 0
+    filler_ratio = analysis["filler_count"] / max(word_count, 1)
+    if filler_ratio > 0.4:
+        return 0
+    if word_count < 4 or filler_ratio > 0.2:
+        return min(mark, 1)
+    return _clip(mark, 0, 2)
+
+
 def mark_roleplay_with_ai(turns: list[dict], scheme: dict) -> dict:
     """Use AI to mark roleplay responses according to the exact 4XES2 markscheme."""
     ai = get_ai()
     if not ai or not ai.is_available():
-        # Fallback to rule-based marking
-        return mark_roleplay(turns, scheme)
-    
+        return _mark_roleplay_rule_based(turns, scheme)
+
     grid = scheme["task1_roleplay"]
+    criteria = _scheme_lines(grid["per_prompt"])
     prompt_marks = []
-    
+
     for index, turn in enumerate(turns[:5], start=1):
         response_text = turn.get("text", "")
         requires_question = turn.get("requires_question", False)
-        
-        # Build prompt using EXACT markscheme descriptors
-        prompt = f"""You are an expert IGCSE English as a Second Language examiner marking Pearson Edexcel 4XES2 Unit 4 Speaking - Task 1 Role Play.
+        question = (turn.get("question") or "").strip()
+        analysis = analyse_text(response_text, turn.get("metrics"))
 
+        prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) Task 1 Role Play turn.
+
+EXAMINER PROMPT: "{question or '(not recorded)'}"
 STUDENT RESPONSE: "{response_text}"
+QUESTION REQUIRED: {"yes — award 0 if the student did not ask a question" if requires_question else "no"}
 
-REQUIREMENT: {"The student MUST ask a question at the end." if requires_question else "No question required for this prompt."}
+OFFICIAL CRITERIA:
+{criteria}
 
-OFFICIAL PEARSON 4XES2 MARKING CRITERIA (apply EXACTLY these descriptors):
-
-2 marks:
-- Clearly communicated
-- Appropriate within the context of the role play
-- Unambiguous
-- Pronunciation supports clear communication
-
-1 mark:
-- Partially clear/ambiguous OR partially appropriate within the context of the role play
-- Pronunciation may affect clarity of communication
-
-0 marks:
-- No rewardable communication
-- Highly ambiguous OR pronunciation prevents communication
-
-MARKING INSTRUCTIONS:
-- If a question was required but not asked, award 0 marks regardless of other quality
-- Assess clarity of communication (is the message clear and unambiguous?)
-- Assess appropriateness to the role-play context (does it fit the situation?)
-- Assess pronunciation impact (does it support or hinder communication?)
-- Use the EXACT descriptors above to determine the mark
-
-Return ONLY a JSON object with this format:
-{{"mark": 0/1/2, "reasoning": "brief explanation referencing the official descriptors above"}}"""
+Judge whether the answer clearly and appropriately addresses THIS examiner prompt.
+Do not reward a fluent answer that does not fit the prompt.
+Return JSON: {{"mark": 0, "reasoning": "one sentence citing the descriptor"}}"""
 
         try:
-            ai_response = ai.generate_text(prompt, max_tokens=300, temperature=0.2, json_mode=True)
-            # Parse JSON from AI response (still strip fences defensively —
-            # some providers/models wrap JSON in ```json even in json_mode)
-            ai_response = ai_response.strip()
-            if ai_response.startswith("```json"):
-                ai_response = ai_response[7:]
-            if ai_response.endswith("```"):
-                ai_response = ai_response[:-3]
-            result = json.loads(ai_response)
-            mark = _clip(int(result.get("mark", 1)), 0, 2)
+            result = ai.generate_json(
+                prompt,
+                system="You are a Pearson Edexcel 4XES2 speaking examiner. Return valid JSON only.",
+                max_tokens=220,
+                temperature=0.1,
+            )
+            mark = _apply_roleplay_guards(int(result.get("mark", 1)), analysis, requires_question)
             descriptor = next(d["descriptor"] for d in grid["per_prompt"] if d["mark"] == mark)
         except Exception as e:
-            print(f"AI marking failed for roleplay turn {index}: {e}")
-            # Fall back to the same well-calibrated rule-based logic used
-            # when no AI is configured at all, instead of a weaker duplicate.
-            # Calling the pure rule-based function (not mark_roleplay) avoids
-            # re-entering the AI path and looping if the AI keeps failing.
+            logger.warning("AI marking failed for roleplay turn %s: %s", index, e)
             single = _mark_roleplay_rule_based([turn], scheme)
             mark = single["prompt_marks"][0]["mark"]
             descriptor = single["prompt_marks"][0]["descriptor"]
-        
+
         prompt_marks.append({
             "prompt_index": index,
             "mark": mark,
             "max": 2,
             "descriptor": descriptor,
-            "analysis": analyse_text(response_text, turn.get("metrics")),
+            "analysis": analysis,
             "evidence": response_text[:240],
         })
-    
+
     total = sum(item["mark"] for item in prompt_marks)
     return {
         "task": "roleplay",
@@ -387,150 +400,105 @@ def _linguistic_score(analyses: list[dict]) -> int:
     return _clip(score, 0, 8)
 
 
+def _student_turns(turns: list[dict]) -> list[dict]:
+    return [t for t in turns if t.get("speaker", "student") == "student"]
+
+
+def _guard_extended_scores(comm: int, ling: int, analyses: list[dict], picture: bool) -> tuple[int, int]:
+    words = sum(a["word_count"] for a in analyses)
+    if not analyses or words == 0:
+        return 0, 0
+    if words < 30:
+        comm = min(comm, 3)
+        ling = min(ling, 2)
+    elif words < 60:
+        comm = min(comm, 6)
+        ling = min(ling, 4)
+    elif words < 100:
+        comm = min(comm, 9)
+        ling = min(ling, 6)
+    rule_comm = _communication_score(analyses, picture=picture)
+    rule_ling = _linguistic_score(analyses)
+    if abs(comm - rule_comm) >= 5:
+        comm = round((comm + rule_comm) / 2)
+    if abs(ling - rule_ling) >= 3:
+        ling = round((ling + rule_ling) / 2)
+    return _clip(comm, 0, 12), _clip(ling, 0, 8)
+
+
 def mark_extended_with_ai(task: str, turns: list[dict], scheme: dict) -> dict:
     """Use AI to mark extended tasks (topic talk or picture) according to exact 4XES2 markscheme."""
     ai = get_ai()
     if not ai or not ai.is_available():
-        # Fallback to rule-based marking
-        return mark_extended(task, turns, scheme)
-    
+        return _mark_extended_rule_based(task, turns, scheme)
+
     key = "task2_topic_talk" if task == "topic_talk" else "task3_picture"
     grid = scheme[key]
-    analyses = [analyse_text(t.get("text", ""), t.get("metrics")) for t in turns if t.get("speaker") == "student"]
-    
-    # Get all student responses
-    student_responses = [t.get("text", "") for t in turns if t.get("speaker") == "student"]
-    all_responses_text = "\n\n".join([f"Response {i+1}: {r}" for i, r in enumerate(student_responses)])
-    
-    # Build prompt with exact markscheme descriptors
-    if task == "topic_talk":
-        comm_criteria = """10-12 marks (Communication and Content):
-- Communicates detailed information relevant to the topic and questions
-- Consistently extended sequences of speech
-- Speaks and responds with ease to questions spontaneously, resulting in natural interaction
-- Communication is clear with occasional ambiguity
-- Pronunciation and intonation are consistently accurate and intelligible
+    student_turns = _student_turns(turns)
+    analyses = [analyse_text(t.get("text", ""), t.get("metrics")) for t in student_turns]
+    task_label = (
+        "Task 2 Topic Talk (chosen Global Issues topic)"
+        if task == "topic_talk"
+        else "Task 3 Picture-based conversation"
+    )
+    prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) {task_label} performance.
 
-7-9 marks:
-- Communicates detailed information relevant to the topic and questions
-- Usually with extended sequences of speech
-- Speaks and responds to most questions spontaneously, resulting in mostly natural interaction
-- Communication is generally clear but with some ambiguity
-- Pronunciation and intonation are intelligible and mostly accurate
+QUESTION AND ANSWER TURNS:
+{_format_qa(student_turns)}
 
-4-6 marks:
-- Communicates information relevant to the topic and questions
-- Some extended sequences of speech
-- Speaks and responds to some questions spontaneously, interacting naturally for parts of the conversation
-- Some examples of clear communication, the message sometimes breaks down
-- Pronunciation and intonation are intelligible; inaccuracies sometimes impact clarity of communication
+COMMUNICATION AND CONTENT (0-12):
+{_scheme_lines(grid["communication_and_content"])}
 
-1-3 marks:
-- Communicates straightforward information in relation to the topic and questions
-- Occasionally extended sequences of speech
-- Occasionally able to speak and respond spontaneously with some examples of natural interaction although often stilted
-- Limited examples of clear communication, the message often breaks down
-- Pronunciation and intonation are mostly intelligible; inaccuracies frequently affect clarity of communication
+LINGUISTIC KNOWLEDGE AND ACCURACY (0-8):
+{_scheme_lines(grid["linguistic_knowledge_and_accuracy"])}
 
-0 marks:
-- No rewardable material
-
-LINGUISTIC KNOWLEDGE AND ACCURACY:
-
-7-8 marks:
-- Wide range of vocabulary that is consistently appropriate to the task
-- Wide range of straightforward and complex structures that are used effectively and appropriately with a few lapses
-- Consistently accurate vocabulary and structures; occasional minor errors
-
-5-6 marks:
-- Range of vocabulary is appropriate for most of the response
-- Good range of straightforward and some complex structures that are generally used effectively and appropriately
-- Vocabulary and structures are accurate for most of the response; mostly minor errors with occasional major errors
-
-3-4 marks:
-- Range of vocabulary is appropriate for some of the response
-- Adequate but predictable range of straightforward structures that are sometimes used effectively and appropriately
-- Some accurate vocabulary and structures; errors occur, some of which are major
-
-1-2 marks:
-- Range of vocabulary is limited
-- Limited range of simple structures, likely to be repetitive
-- Limited accuracy of vocabulary and structures; frequent errors, both major and minor
-
-0 marks:
-- No rewardable material"""
-        
-        task_context = "Task 2 Topic Talk - Student is presenting on a chosen topic from Global Issues"
-    else:
-        comm_criteria = """10-12 marks (Communication and Content):
-- Describes the picture and responds to questions in a consistently fluent and developed manner
-- Speaks and responds with ease to questions spontaneously, resulting in natural interaction
-- Communication is clear with occasional ambiguity
-- Pronunciation and intonation are consistently accurate and intelligible
-
-7-9 marks:
-- Describes the picture and responds to questions in a mostly developed and fluent manner, with minimal hesitation and minimal prompting necessary
-- Speaks and responds to most questions spontaneously, resulting in mostly natural interaction
-- Communication is generally clear but with some ambiguity
-- Pronunciation and intonation are intelligible and mostly accurate
-
-4-6 marks:
-- Describes the picture and responds to questions with occasional development, some hesitation, some prompting necessary
-- Speaks and responds to some questions spontaneously, interacting naturally for parts of the conversation
-- Some examples of clear communication, the message sometimes breaks down
-- Pronunciation and intonation are intelligible; inaccuracies sometimes impact clarity of communication
-
-1-3 marks:
-- Describes the picture and responds to questions with limited development; hesitation is apparent and prompting is often necessary
-- Occasionally able to speak and respond spontaneously, with some examples of natural interaction although often stilted
-- Limited examples of clear communication, the message often breaks down
-- Pronunciation and intonation are mostly intelligible; inaccuracies frequently affect clarity of communication
-
-0 marks:
-- No rewardable material
-
-LINGUISTIC KNOWLEDGE AND ACCURACY:
-(Same as Topic Talk - 7-8, 5-6, 3-4, 1-2, 0 marks)"""
-        
-        task_context = "Task 3 Picture Conversation - Student is discussing a photograph"
-    
-    prompt = f"""You are an expert IGCSE English as a Second Language examiner marking Pearson Edexcel 4XES2 Unit 4 Speaking - {task_context}.
-
-STUDENT RESPONSES:
-{all_responses_text}
-
-OFFICIAL PEARSON 4XES2 MARKING CRITERIA (apply EXACTLY these descriptors):
-
-{comm_criteria}
-
-MARKING INSTRUCTIONS:
-- Assess Communication and Content (12 marks max) using the descriptors above
-- Assess Linguistic Knowledge and Accuracy (8 marks max) using the descriptors above
-- Use the EXACT descriptors to determine the appropriate band
-- Consider: vocabulary range, sentence structures, accuracy, fluency, spontaneity, pronunciation
-
-Return ONLY a JSON object with this format:
-{{"communication_score": 0-12, "linguistic_score": 0-8, "reasoning": "brief explanation referencing the official descriptors"}}"""
+Choose a mark inside a band only if the performance matches that band.
+Do not award a high band for short or off-topic answers.
+Return JSON: {{"communication_score": 0, "linguistic_score": 0, "reasoning": "one or two sentences"}}"""
 
     try:
-        ai_response = ai.generate_text(prompt, max_tokens=400, temperature=0.2, json_mode=True)
-        ai_response = ai_response.strip()
-        if ai_response.startswith("```json"):
-            ai_response = ai_response[7:]
-        if ai_response.endswith("```"):
-            ai_response = ai_response[:-3]
-        result = json.loads(ai_response)
+        result = ai.generate_json(
+            prompt,
+            system="You are a Pearson Edexcel 4XES2 speaking examiner. Return valid JSON only.",
+            max_tokens=350,
+            temperature=0.1,
+        )
         comm = _clip(int(result.get("communication_score", 4)), 0, 12)
         ling = _clip(int(result.get("linguistic_score", 2)), 0, 8)
+        comm, ling = _guard_extended_scores(comm, ling, analyses, picture=task == "picture")
     except Exception as e:
-        print(f"AI marking failed for {task}: {e}")
-        # Fallback to the pure rule-based scorers directly.
+        logger.warning("AI marking failed for %s: %s", task, e)
         comm = _communication_score(analyses, picture=task == "picture")
         ling = _linguistic_score(analyses)
-    
+
+    return _extended_result(task, grid, comm, ling, analyses, "AI-assisted marking using official Pearson 4XES2 mark scheme descriptors.")
+
+
+def _empty_extended(task: str) -> dict:
+    return {
+        "task": task,
+        "score": 0,
+        "max": 20,
+        "communication_and_content": {
+            "score": 0,
+            "max": 12,
+            "band": "0-0",
+            "descriptor": "No rewardable material.",
+        },
+        "linguistic_knowledge_and_accuracy": {
+            "score": 0,
+            "max": 8,
+            "band": "0-0",
+            "descriptor": "No rewardable material.",
+        },
+        "analyses": [],
+        "justification": "No student responses recorded for this task.",
+    }
+
+
+def _extended_result(task: str, grid: dict, comm: int, ling: int, analyses: list[dict], justification: str) -> dict:
     comm_band = _band_from_score(grid["communication_and_content"], comm)
     ling_band = _band_from_score(grid["linguistic_knowledge_and_accuracy"], ling)
-    
     return {
         "task": task,
         "score": comm + ling,
@@ -548,8 +516,30 @@ Return ONLY a JSON object with this format:
             "descriptor": ling_band["descriptor"],
         },
         "analyses": analyses,
-        "justification": "AI-assisted marking using official Pearson 4XES2 mark scheme descriptors.",
+        "justification": justification,
     }
+
+
+def _mark_extended_rule_based(task: str, turns: list[dict], scheme: dict) -> dict:
+    key = "task2_topic_talk" if task == "topic_talk" else "task3_picture"
+    grid = scheme[key]
+    task_turns = _student_turns(turns)
+    if not task_turns:
+        return _empty_extended(task)
+    analyses = [analyse_text(t.get("text", ""), t.get("metrics")) for t in task_turns]
+    comm = _communication_score(analyses, picture=task == "picture")
+    ling = _linguistic_score(analyses)
+    return _extended_result(
+        task,
+        grid,
+        comm,
+        ling,
+        analyses,
+        (
+            "Rule-based marking aligned with Pearson 4XES2 Task 2/3 descriptors: "
+            "Communication (extended sequences, spontaneity, fluency) and Linguistic (vocabulary range, structures, accuracy)."
+        ),
+    )
 
 
 def mark_extended(task: str, turns: list[dict], scheme: dict) -> dict:
@@ -557,63 +547,7 @@ def mark_extended(task: str, turns: list[dict], scheme: dict) -> dict:
     ai = get_ai()
     if ai and ai.is_available():
         return mark_extended_with_ai(task, turns, scheme)
-    
-    # Fallback to rule-based marking aligned with 4XES2 descriptors
-    key = "task2_topic_talk" if task == "topic_talk" else "task3_picture"
-    grid = scheme[key]
-    
-    # Get student turns for this specific task
-    task_turns = [t for t in turns if t.get("speaker") == "student"]
-    
-    # If no turns, return 0 but with proper structure
-    if not task_turns:
-        return {
-            "task": task,
-            "score": 0,
-            "max": 20,
-            "communication_and_content": {
-                "score": 0,
-                "max": 12,
-                "band": "0-0",
-                "descriptor": "No rewardable material.",
-            },
-            "linguistic_knowledge_and_accuracy": {
-                "score": 0,
-                "max": 8,
-                "band": "0-0",
-                "descriptor": "No rewardable material.",
-            },
-            "analyses": [],
-            "justification": "No student responses recorded for this task.",
-        }
-    
-    analyses = [analyse_text(t.get("text", ""), t.get("metrics")) for t in task_turns]
-    comm = _communication_score(analyses, picture=task == "picture")
-    ling = _linguistic_score(analyses)
-    comm_band = _band_from_score(grid["communication_and_content"], comm)
-    ling_band = _band_from_score(grid["linguistic_knowledge_and_accuracy"], ling)
-    return {
-        "task": task,
-        "score": comm + ling,
-        "max": 20,
-        "communication_and_content": {
-            "score": comm,
-            "max": 12,
-            "band": f"{comm_band['min']}-{comm_band['max']}",
-            "descriptor": comm_band["descriptor"],
-        },
-        "linguistic_knowledge_and_accuracy": {
-            "score": ling,
-            "max": 8,
-            "band": f"{ling_band['min']}-{ling_band['max']}",
-            "descriptor": ling_band["descriptor"],
-        },
-        "analyses": analyses,
-        "justification": (
-            "Rule-based marking aligned with Pearson 4XES2 Task 2/3 descriptors: "
-            "Communication (extended sequences, spontaneity, fluency) and Linguistic (vocabulary range, structures, accuracy)."
-        ),
-    }
+    return _mark_extended_rule_based(task, turns, scheme)
 
 
 def mark_attempt(attempt_id: int, payload: dict) -> dict:

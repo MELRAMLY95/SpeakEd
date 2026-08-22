@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
 
+from ai.json_util import parse_json_object
+
 
 @dataclass
 class AIMessage:
@@ -31,6 +33,7 @@ class AIProvider(ABC):
         max_tokens: int = 100,
         temperature: float = 0.7,
         json_mode: bool = False,
+        system: str = "",
     ) -> str:
         """Simple text generation method for basic prompts.
 
@@ -38,8 +41,28 @@ class AIProvider(ABC):
         JSON object back (marking, feedback) rely on this to get a schema-
         conformant response instead of free-form prose that fails to parse.
         """
-        messages = [AIMessage(role="user", content=prompt)]
+        messages = []
+        if system:
+            messages.append(AIMessage(role="system", content=system))
+        messages.append(AIMessage(role="user", content=prompt))
         return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
+
+    def generate_json(
+        self,
+        prompt: str,
+        *,
+        system: str = "",
+        max_tokens: int = 400,
+        temperature: float = 0.2,
+    ) -> dict:
+        raw = self.generate_text(
+            prompt,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            json_mode=True,
+            system=system,
+        )
+        return parse_json_object(raw)
 
     def is_available(self) -> bool:
         return True

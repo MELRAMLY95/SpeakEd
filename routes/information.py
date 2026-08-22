@@ -12,11 +12,20 @@ from routes.auth import login_required
 @login_required
 def home():
     """Display all gathered information for the current user."""
-    gathered = query_all(
-        "SELECT * FROM gathered_info WHERE user_id = ? ORDER BY created_at DESC",
-        (g.user["id"],),
-    )
-    return render_template("information/information.html", gathered=gathered)
+    search_query = request.args.get("search", "").strip()
+    
+    if search_query:
+        gathered = query_all(
+            "SELECT * FROM gathered_info WHERE user_id = ? AND (topic LIKE ? OR information LIKE ?) ORDER BY created_at DESC",
+            (g.user["id"], f"%{search_query}%", f"%{search_query}%"),
+        )
+    else:
+        gathered = query_all(
+            "SELECT * FROM gathered_info WHERE user_id = ? ORDER BY created_at DESC",
+            (g.user["id"],),
+        )
+    
+    return render_template("information/information.html", gathered=gathered, search_query=search_query)
 
 
 @information_bp.route("/new", methods=["GET", "POST"])
@@ -34,8 +43,23 @@ def new():
         
         if ai and ai.is_available():
             try:
-                prompt = f"Provide comprehensive information about the topic: {topic}. Include key facts, concepts, examples, and explanations that would be helpful for a student learning this subject."
+                prompt = f"Provide comprehensive information about the topic: {topic}. Include key facts, concepts, examples, and explanations that would be helpful for a student learning this subject. Use plain text without markdown formatting, hashtags, or special characters. Organize the information with clear headings and bullet points for readability."
                 information = ai.generate_text(prompt, max_tokens=2000, temperature=0.7)
+                
+                # Clean up the AI response to remove markdown tags and special characters
+                import re
+                # Remove markdown headers (# ## ###)
+                information = re.sub(r'^#+\s*', '', information, flags=re.MULTILINE)
+                # Remove markdown bold/italic (**, *)
+                information = re.sub(r'\*\*([^*]+)\*\*', r'\1', information)
+                information = re.sub(r'\*([^*]+)\*', r'\1', information)
+                # Remove hashtags
+                information = re.sub(r'#(\w+)', r'\1', information)
+                # Remove other markdown characters
+                information = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', information)
+                # Clean up extra whitespace
+                information = re.sub(r'\n\s*\n\s*\n', '\n\n', information)
+                information = information.strip()
                 
                 if not information or len(information) < 50:
                     flash("AI could not generate sufficient information. Please try again.", "error")
@@ -46,21 +70,21 @@ def new():
                 return render_template("information/new.html")
         else:
             # AI not available - provide a helpful template for manual entry
-            information = f"""# Information about {topic}
+            information = f"""Information about {topic}
 
-## Key Facts
+Key Facts:
 [Add key facts about {topic} here]
 
-## Important Concepts
+Important Concepts:
 [Explain important concepts related to {topic}]
 
-## Examples
+Examples:
 [Provide examples that help understand {topic}]
 
-## Explanations
+Explanations:
 [Add detailed explanations that would be helpful for learning about {topic}]
 
-## Additional Notes
+Additional Notes:
 [Add any other relevant information about {topic}]
 """
             flash("AI service is not configured. A template has been created for you to fill in manually. To enable AI generation, configure Ollama, Gemini, or OpenAI API in your .env file.", "info")

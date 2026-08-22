@@ -30,6 +30,7 @@ class RuleBasedProvider(AIProvider):
         max_tokens: int = 100,
         temperature: float = 0.7,
         json_mode: bool = False,
+        system: str = "",
     ) -> str:
         """Rule-based fallback for the plain-text practice-note prompt only.
 
@@ -124,9 +125,12 @@ class OllamaProvider(AIProvider):
         max_tokens: int = 100,
         temperature: float = 0.7,
         json_mode: bool = False,
+        system: str = "",
     ) -> str:
-        """Simple text generation using Ollama."""
-        messages = [AIMessage(role="user", content=prompt)]
+        messages = []
+        if system:
+            messages.append(AIMessage(role="system", content=system))
+        messages.append(AIMessage(role="user", content=prompt))
         try:
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
@@ -213,9 +217,12 @@ class GeminiProvider(AIProvider):
         max_tokens: int = 100,
         temperature: float = 0.7,
         json_mode: bool = False,
+        system: str = "",
     ) -> str:
-        """Simple text generation using Gemini."""
-        messages = [AIMessage(role="user", content=prompt)]
+        messages = []
+        if system:
+            messages.append(AIMessage(role="system", content=system))
+        messages.append(AIMessage(role="user", content=prompt))
         try:
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
@@ -272,9 +279,12 @@ class OpenAIProvider(AIProvider):
         max_tokens: int = 100,
         temperature: float = 0.7,
         json_mode: bool = False,
+        system: str = "",
     ) -> str:
-        """Simple text generation using OpenAI."""
-        messages = [AIMessage(role="user", content=prompt)]
+        messages = []
+        if system:
+            messages.append(AIMessage(role="system", content=system))
+        messages.append(AIMessage(role="user", content=prompt))
         try:
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
