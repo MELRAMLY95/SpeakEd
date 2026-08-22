@@ -6,6 +6,7 @@ from routes.auth import auth_bp
 from routes.dashboard import dashboard_bp
 from routes.evaluation import evaluation_bp
 from routes.exam import exam_bp
+from routes.information import information_bp
 from routes.practice import practice_bp
 from routes.progress import progress_bp
 
@@ -21,6 +22,7 @@ def create_app(config_object=None):
     app.register_blueprint(practice_bp)
     app.register_blueprint(progress_bp)
     app.register_blueprint(evaluation_bp)
+    app.register_blueprint(information_bp)
 
     @app.before_request
     def load_user():

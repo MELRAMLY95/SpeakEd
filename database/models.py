@@ -98,7 +98,18 @@ CREATE TABLE IF NOT EXISTS self_evaluations (
     FOREIGN KEY (attempt_id) REFERENCES attempts(id) ON DELETE CASCADE
 );
 
+CREATE TABLE IF NOT EXISTS gathered_info (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    topic TEXT NOT NULL,
+    information TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_attempts_user ON attempts(user_id, completed_at);
 CREATE INDEX IF NOT EXISTS idx_prompt_usage_user ON prompt_usage(user_id, task);
 CREATE INDEX IF NOT EXISTS idx_transcripts_attempt ON transcripts(attempt_id);
+CREATE INDEX IF NOT EXISTS idx_gathered_info_user ON gathered_info(user_id, created_at);
 """
