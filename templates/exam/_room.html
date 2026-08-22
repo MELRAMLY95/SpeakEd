@@ -8,11 +8,7 @@
     <p class="examiner-label">AI examiner</p>
     <p class="status-pill" data-status>Ready</p>
     <blockquote data-question>{{ (state.prompt.display if state.prompt else 'Preparing the next prompt.') }}</blockquote>
-    {% if state.prompt and state.prompt.image %}
-      <figure class="stimulus">
-        <img src="{{ state.prompt.image }}" alt="Picture stimulus">
-      </figure>
-    {% elif state.cards.picture and state.stage in ['preparation', 'picture'] %}
+    {% if state.cards.picture and state.stage in ['preparation', 'picture'] %}
       <figure class="stimulus">
         <img src="{{ state.cards.picture.image }}" alt="Picture stimulus for {{ state.cards.picture.title }}">
       </figure>

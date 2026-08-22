@@ -42,17 +42,20 @@ def picture():
         if not cards and isinstance(cards_data, list):
             cards = cards_data
         
-        # Inject dynamic image URLs
+        # Inject dynamic image URLs and store original image paths for later
         for card in cards:
             if isinstance(card, dict) and card.get("image"):
-                if "homes" in card["image"]:
+                original_image = card["image"]
+                if "homes" in original_image:
                     card["image"] = image_fetcher.get_image_for_topic("homes")
-                elif "tourism" in card["image"]:
+                elif "tourism" in original_image:
                     card["image"] = image_fetcher.get_image_for_topic("tourism")
-                elif "school" in card["image"]:
+                elif "school" in original_image:
                     card["image"] = image_fetcher.get_image_for_topic("school")
-                elif "work" in card["image"]:
+                elif "work" in original_image:
                     card["image"] = image_fetcher.get_image_for_topic("work")
+                # Store original image path to use during the exam
+                card["original_image"] = original_image
         
         return render_template("practice/picture_conversation.html", cards=cards)
     except Exception as e:
@@ -75,5 +78,6 @@ def start():
     section = request.form.get("section") or "roleplay"
     topic = request.form.get("topic_title") or ""
     notes = request.form.get("topic_notes") or ""
-    state = engine.start(g.user["id"], section, "practice", topic, notes)
+    picture_id = request.form.get("picture_id") or ""
+    state = engine.start(g.user["id"], section, "practice", topic, notes, picture_id)
     return redirect(url_for("exam.room", attempt_id=state["attempt_id"]))

@@ -43,7 +43,7 @@ class ExamEngine:
     def __init__(self, bank: PromptBank | None = None):
         self.bank = bank or PromptBank()
 
-    def start(self, user_id: int, exam_type: str, mode: str, topic_title: str = "", topic_notes: str = "") -> dict:
+    def start(self, user_id: int, exam_type: str, mode: str, topic_title: str = "", topic_notes: str = "", picture_id: str = "") -> dict:
         exam_type = exam_type if exam_type in {"full", "roleplay", "topic_talk", "picture"} else "full"
         mode = "practice" if mode == "practice" else "full"
         payload = {
@@ -57,7 +57,10 @@ class ExamEngine:
             payload["roleplay"] = self.bank.choose_roleplay(user_id)
         if exam_type in {"full", "picture"}:
             avoid = payload.get("roleplay", {}).get("topic_area")
-            payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
+            if picture_id:
+                payload["picture"] = self.bank.choose_picture_by_id(picture_id)
+            else:
+                payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
         if exam_type in {"full", "topic_talk"}:
             title = topic_title.strip() or "your chosen Global Issues topic"
             payload["topic_followups"] = self.bank.choose_topic_followups(user_id, title)

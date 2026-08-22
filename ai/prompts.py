@@ -52,6 +52,15 @@ class PromptBank:
                 cards = filtered
         return self._choose_one(user_id, "picture", cards)
 
+    def choose_picture_by_id(self, picture_id: str) -> dict:
+        cards = self.picture["cards"]
+        for card in cards:
+            if card.get("id") == picture_id:
+                # Return a copy to avoid modifying the original
+                return dict(card)
+        # Fallback to first card if not found
+        return dict(cards[0]) if cards else {}
+
     def choose_topic_followups(self, user_id: int, topic_title: str, count: int = 6) -> list[dict]:
         pool = []
         for item in self.topic_talk["follow_ups"]:

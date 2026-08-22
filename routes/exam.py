@@ -27,7 +27,8 @@ def start():
     mode = request.form.get("mode") or "full"
     topic = request.form.get("topic_title") or ""
     notes = request.form.get("topic_notes") or ""
-    state = engine.start(g.user["id"], exam_type, mode, topic, notes)
+    picture_id = request.form.get("picture_id") or ""
+    state = engine.start(g.user["id"], exam_type, mode, topic, notes, picture_id)
     return redirect(url_for("exam.room", attempt_id=state["attempt_id"]))
 
 
@@ -60,17 +61,18 @@ def room(attempt_id):
     # Inject dynamic image URLs for picture conversation
     if state and state.get("stage") == "picture" and state.get("cards"):
         try:
-            for card in state["cards"]:
-                if isinstance(card, dict) and card.get("image"):
-                    # Extract topic from image path
-                    if "homes" in card["image"]:
-                        card["image"] = image_fetcher.get_image_for_topic("homes")
-                    elif "tourism" in card["image"]:
-                        card["image"] = image_fetcher.get_image_for_topic("tourism")
-                    elif "school" in card["image"]:
-                        card["image"] = image_fetcher.get_image_for_topic("school")
-                    elif "work" in card["image"]:
-                        card["image"] = image_fetcher.get_image_for_topic("work")
+            picture_card = state["cards"].get("picture")
+            if picture_card and isinstance(picture_card, dict) and picture_card.get("image"):
+                # Extract topic from image path or use the picture card's topic
+                original_image = picture_card["image"]
+                if "homes" in original_image:
+                    picture_card["image"] = image_fetcher.get_image_for_topic("homes")
+                elif "tourism" in original_image:
+                    picture_card["image"] = image_fetcher.get_image_for_topic("tourism")
+                elif "school" in original_image:
+                    picture_card["image"] = image_fetcher.get_image_for_topic("school")
+                elif "work" in original_image:
+                    picture_card["image"] = image_fetcher.get_image_for_topic("work")
         except Exception as e:
             print(f"Error injecting image URLs: {e}")
             # Continue without image injection
