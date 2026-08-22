@@ -31,7 +31,8 @@ def new():
 
         # Get AI provider and generate information
         ai = get_ai()
-        if ai:
+        
+        if ai and ai.is_available():
             try:
                 prompt = f"Provide comprehensive information about the topic: {topic}. Include key facts, concepts, examples, and explanations that would be helpful for a student learning this subject."
                 information = ai.generate_text(prompt, max_tokens=2000, temperature=0.7)
@@ -44,8 +45,25 @@ def new():
                 flash("Error generating information. Please try again.", "error")
                 return render_template("information/new.html")
         else:
-            flash("AI service is not available. Please check your configuration.", "error")
-            return render_template("information/new.html")
+            # AI not available - provide a helpful template for manual entry
+            information = f"""# Information about {topic}
+
+## Key Facts
+[Add key facts about {topic} here]
+
+## Important Concepts
+[Explain important concepts related to {topic}]
+
+## Examples
+[Provide examples that help understand {topic}]
+
+## Explanations
+[Add detailed explanations that would be helpful for learning about {topic}]
+
+## Additional Notes
+[Add any other relevant information about {topic}]
+"""
+            flash("AI service is not configured. A template has been created for you to fill in manually. To enable AI generation, configure Ollama, Gemini, or OpenAI API in your .env file.", "info")
 
         # Store in database
         now = datetime.utcnow().isoformat()
