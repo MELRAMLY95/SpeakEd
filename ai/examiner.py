@@ -167,6 +167,35 @@ class ExamEngine:
         marking = mark_attempt(attempt_id, self._marking_payload(payload))
         transcripts = [dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
         feedback = build_feedback(attempt_id, marking, transcripts)
+        
+        # Save marking to database
+        execute(
+            """INSERT OR REPLACE INTO markings (attempt_id, analysis_json, scores_json, justification_json, created_at)
+               VALUES (?, ?, ?, ?, ?)""",
+            (
+                attempt_id,
+                json.dumps(marking.get("analyses", {})),
+                json.dumps(marking.get("scores", {})),
+                json.dumps(marking.get("justification", "")),
+                _now(),
+            ),
+        )
+        
+        # Save feedback to database
+        execute(
+            """INSERT OR REPLACE INTO feedback (attempt_id, strengths_json, weaknesses_json, lost_marks_json, recommendations_json, examiner_comments, created_at)
+               VALUES (?, ?, ?, ?, ?, ?, ?)""",
+            (
+                attempt_id,
+                json.dumps(feedback.get("strengths", [])),
+                json.dumps(feedback.get("weaknesses", [])),
+                json.dumps(feedback.get("lost_marks", [])),
+                json.dumps(feedback.get("recommendations", [])),
+                feedback.get("examiner_comments", ""),
+                _now(),
+            ),
+        )
+        
         execute(
             """UPDATE attempts SET status='completed', stage='complete', completed_at=?,
                roleplay_score=?, topic_talk_score=?, picture_score=?, total_score=?,
