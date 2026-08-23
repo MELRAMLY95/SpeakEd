@@ -42,6 +42,47 @@ class RuleBasedProvider(AIProvider):
         """
         prompt_lower = prompt.lower()
 
+        # Check if this is an information gathering request
+        if "comprehensive information" in prompt_lower or "information about the topic" in prompt_lower:
+            # Extract the topic from the prompt
+            topic_start = prompt_lower.find("topic:") + 6 if "topic:" in prompt_lower else -1
+            if topic_start == -1:
+                topic_start = prompt_lower.find("topic") + 5 if "topic" in prompt_lower else -1
+            
+            if topic_start != -1:
+                topic_end = prompt.find(".", topic_start)
+                topic = prompt[topic_start:topic_end].strip() if topic_end != -1 else prompt[topic_start:].strip()
+                topic = topic[:50]  # Limit topic length
+            else:
+                topic = "this subject"
+            
+            return f"""Information about {topic}
+
+Key Facts:
+• {topic} is an important subject with various aspects to consider
+• Understanding the fundamentals is essential for advanced learning
+• There are multiple perspectives and approaches to studying {topic}
+
+Important Concepts:
+• Core principles form the foundation of {topic}
+• Relationships between different concepts help deepen understanding
+• Practical application reinforces theoretical knowledge
+
+Examples:
+• Real-world applications demonstrate the relevance of {topic}
+• Case studies provide concrete illustrations of key concepts
+• Historical context shows the development of ideas over time
+
+Explanations:
+• Breaking down complex ideas into manageable parts aids comprehension
+• Connecting new information to existing knowledge improves retention
+• Regular practice and review are essential for mastery
+
+Additional Notes:
+• Further research and reading are recommended for deeper understanding
+• Discussing topics with peers can provide new insights
+• Hands-on experience complements theoretical study"""
+
         if "short" in prompt_lower and "word" in prompt_lower:
             return "Your answer needs more detail. Try to extend it with more information."
         elif "role-play" in prompt_lower:
@@ -232,6 +273,94 @@ class GeminiProvider(AIProvider):
             return "Good response. Keep practicing to improve your speaking skills."
 
 
+class ZAIProvider(AIProvider):
+    """Z.AI (GLM) API provider — primary AI provider for SpeakEd.
+    
+    Uses the Z.AI API (https://api.z.ai/api/paas/v4) with GLM models.
+    Environment variable ZAI_API_KEY is required.
+    """
+
+    name = "zai"
+
+    def __init__(self, api_key: str, model: str, base_url: str, timeout: int = 30):
+        self.api_key = api_key
+        self.model = model
+        self.base_url = base_url.rstrip("/")
+        self.timeout = timeout
+
+    def is_available(self) -> bool:
+        return bool(self.api_key)
+
+    def generate(
+        self,
+        messages: list[AIMessage],
+        *,
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 800,
+    ) -> str:
+        payload = {
+            "model": self.model,
+            "temperature": temperature,
+            "max_tokens": max_tokens,
+            "messages": [{"role": m.role, "content": m.content} for m in messages],
+        }
+        if json_mode:
+            payload["response_format"] = {"type": "json_object"}
+        
+        data = json.dumps(payload).encode("utf-8")
+        url = f"{self.base_url}/chat/completions"
+        request = urllib.request.Request(
+            url,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+            },
+            method="POST",
+        )
+        
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                body = json.loads(response.read().decode("utf-8"))
+            
+            # Handle Z.AI/GLM response format
+            if "choices" in body and len(body["choices"]) > 0:
+                return body["choices"][0]["message"]["content"]
+            else:
+                raise RuntimeError(f"Z.AI returned unexpected response format: {body}")
+                
+        except urllib.error.HTTPError as e:
+            error_body = e.read().decode("utf-8")
+            raise RuntimeError(f"Z.AI API error {e.code}: {error_body}")
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Z.AI connection error: {e.reason}")
+        except json.JSONDecodeError as e:
+            raise RuntimeError(f"Z.AI returned invalid JSON: {e}")
+        except Exception as e:
+            raise RuntimeError(f"Z.AI generation failed: {e}")
+
+    def generate_text(
+        self,
+        prompt: str,
+        max_tokens: int = 100,
+        temperature: float = 0.7,
+        json_mode: bool = False,
+        system: str = "",
+    ) -> str:
+        messages = []
+        if system:
+            messages.append(AIMessage(role="system", content=system))
+        messages.append(AIMessage(role="user", content=prompt))
+        try:
+            return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
+        except Exception as e:
+            print(f"Z.AI text generation failed: {e}")
+            if json_mode:
+                raise
+            return "Good response. Keep practicing to improve your speaking skills."
+
+
 class OpenAIProvider(AIProvider):
     name = "openai"
 
@@ -304,28 +433,43 @@ def create_provider(config: dict) -> AIProvider:
         return GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.6-flash"))
     if choice == "openai":
         return OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
+    if choice == "zai":
+        zai = ZAIProvider(
+            config.get("ZAI_API_KEY", ""),
+            config.get("ZAI_MODEL", "glm-4"),
+            config.get("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4")
+        )
+        if not zai.is_available():
+            raise RuntimeError("Z.AI provider selected but ZAI_API_KEY is not set")
+        return zai
 
     # --- "auto" mode ---
+    # Priority: Z.AI → Gemini → Ollama → rule
+    zai = ZAIProvider(
+        config.get("ZAI_API_KEY", ""),
+        config.get("ZAI_MODEL", "glm-4"),
+        config.get("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4")
+    )
     gemini = GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.6-flash"))
     openai = OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
 
-    if config.get("IS_RENDER"):
-        # On Render there's no local Ollama to reach, so go straight to the
-        # free-tier Gemini API, then OpenAI (if a key happens to be set),
-        # then the offline rule-based scorer as a last resort.
-        if gemini.is_available():
-            return gemini
-        if openai.is_available():
-            return openai
-        return RuleBasedProvider()
-
-    # Local development: prefer a locally running Ollama model (free,
-    # private, works offline), then Gemini, then OpenAI, then rule-based.
-    ollama = OllamaProvider(config.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"), config.get("OLLAMA_MODEL", "llama3.2"))
-    if ollama.is_available():
-        return ollama
+    # Try Z.AI first (primary provider)
+    if zai.is_available():
+        return zai
+    
+    # Fallback to Gemini
     if gemini.is_available():
         return gemini
+    
+    # For local development, try Ollama before OpenAI
+    if not config.get("IS_RENDER"):
+        ollama = OllamaProvider(config.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"), config.get("OLLAMA_MODEL", "llama3.2"))
+        if ollama.is_available():
+            return ollama
+    
+    # Fallback to OpenAI if available
     if openai.is_available():
         return openai
+    
+    # Final fallback to rule-based provider
     return RuleBasedProvider()

@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 
 from flask import flash, g, redirect, render_template, request, url_for
 
@@ -41,7 +42,7 @@ def new():
         # Get AI provider and generate information
         ai = get_ai()
         
-        if ai and ai.is_available():
+        if ai:
             try:
                 prompt = f"Provide comprehensive information about the topic: {topic}. Include key facts, concepts, examples, and explanations that would be helpful for a student learning this subject. Use plain text without markdown formatting, hashtags, or special characters. Organize the information with clear headings and bullet points for readability."
                 information = ai.generate_text(prompt, max_tokens=2000, temperature=0.7)
@@ -87,7 +88,7 @@ Explanations:
 Additional Notes:
 [Add any other relevant information about {topic}]
 """
-            flash("AI service is not configured. A template has been created for you to fill in manually. To enable AI generation, configure Ollama, Gemini, or OpenAI API in your .env file.", "info")
+            flash("AI service is not configured. A template has been created for you to fill in manually. To enable AI generation, configure Z.AI, Gemini, or Ollama API in your .env file.", "info")
 
         # Store in database
         now = datetime.utcnow().isoformat()
