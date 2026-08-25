@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import datetime, timezone
 
 from ai.prompts import PromptBank
@@ -6,6 +7,8 @@ from ai.speech import cleanup_attempt_audio, save_turn_audio, summarise_metrics
 from ai.voice import examiner_voice_payload
 from ai.ai_provider import get_ai
 from database.database import execute, query_all, query_one
+
+logger = logging.getLogger(__name__)
 
 STAGES_FULL = ["preparation", "warmup", "roleplay", "topic_talk", "picture", "complete"]
 STAGE_LABELS = {
@@ -20,6 +23,24 @@ STAGE_LABELS = {
 
 def _now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _row_dict(row) -> dict:
+    if row is None:
+        return {}
+    if isinstance(row, dict):
+        return dict(row)
+    return {key: row[key] for key in row.keys()}
+
+
+def _section_score(marking: dict, key: str):
+    block = marking.get(key) if isinstance(marking, dict) else None
+    if not isinstance(block, dict):
+        return None
+    try:
+        return int(block["score"])
+    except (KeyError, TypeError, ValueError):
+        return None
 
 
 def _payload(attempt) -> dict:
@@ -248,35 +269,56 @@ class ExamEngine:
         from ai.feedback import build_feedback, feedback_from_marking
         from ai.marking import mark_attempt
 
-        attempt = self._get(attempt_id, user_id)
-        payload = _payload(attempt)
-        marking = mark_attempt(
-            attempt_id,
-            self._marking_payload(payload, attempt_id, exam_type=attempt["exam_type"]),
-        )
-        if marking.get("unavailable"):
-            payload["marking_error"] = marking.get("error")
-            execute(
-                """UPDATE attempts SET status='marking_unavailable', stage='complete', completed_at=?,
-                   roleplay_score=NULL, topic_talk_score=NULL, picture_score=NULL, total_score=NULL,
-                   strongest_area=NULL, weakest_area=NULL WHERE id=? AND user_id=?""",
-                (_now(), attempt_id, user_id),
+        try:
+            attempt = self._get(attempt_id, user_id)
+            payload = _payload(attempt)
+            marking = mark_attempt(
+                attempt_id,
+                self._marking_payload(payload, attempt_id, exam_type=attempt["exam_type"]),
             )
+            if marking.get("unavailable"):
+                payload["marking_error"] = marking.get("error")
+                execute(
+                    """UPDATE attempts SET status='marking_unavailable', stage='complete', completed_at=?,
+                       roleplay_score=NULL, topic_talk_score=NULL, picture_score=NULL, total_score=NULL,
+                       strongest_area=NULL, weakest_area=NULL WHERE id=? AND user_id=?""",
+                    (_now(), attempt_id, user_id),
+                )
+                _save_payload(attempt_id, payload)
+                return {"marking": marking, "feedback": None, "unavailable": True}
+            # Scores must be stored before feedback. A later feedback failure used to
+            # flip the attempt to marking_unavailable without writing these columns,
+            # so the results page showed dashes even though marking had succeeded.
+            self._store_scores(attempt, marking)
+            transcripts = [_row_dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
+            feedback = build_feedback(attempt_id, marking, transcripts, payload)
+            if feedback.get("unavailable"):
+                payload["feedback_error"] = feedback.get("error")
+                feedback = feedback_from_marking(attempt_id, marking, transcripts)
+            payload.pop("marking_error", None)
             _save_payload(attempt_id, payload)
-            return {"marking": marking, "feedback": None, "unavailable": True}
-        # Scores must be stored before feedback. A later feedback failure used to
-        # flip the attempt to marking_unavailable without writing these columns,
-        # so the results page showed dashes even though marking had succeeded.
-        self._store_scores(attempt, marking)
-        transcripts = [dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
-        feedback = build_feedback(attempt_id, marking, transcripts, payload)
-        if feedback.get("unavailable"):
-            payload["feedback_error"] = feedback.get("error")
-            feedback = feedback_from_marking(attempt_id, marking, transcripts)
-        payload.pop("marking_error", None)
-        _save_payload(attempt_id, payload)
-        cleanup_attempt_audio(attempt_id)
-        return {"marking": marking, "feedback": feedback, "unavailable": False}
+            cleanup_attempt_audio(attempt_id)
+            return {"marking": marking, "feedback": feedback, "unavailable": False}
+        except Exception as exc:
+            logger.exception("Marking failed for attempt %s", attempt_id)
+            try:
+                execute(
+                    """UPDATE attempts SET status='marking_unavailable', stage='complete', completed_at=?
+                       WHERE id=? AND user_id=?""",
+                    (_now(), attempt_id, user_id),
+                )
+            except Exception:
+                logger.exception("Could not record marking_unavailable for attempt %s", attempt_id)
+            return {
+                "marking": {
+                    "unavailable": True,
+                    "retry": True,
+                    "error": "The AI examiner could not complete marking. Please retry in a minute.",
+                },
+                "feedback": None,
+                "unavailable": True,
+                "error": str(exc),
+            }
 
     def restore_scores_from_marking(self, attempt):
         """Write score columns back when marking JSON was saved but attempts were cleared.
@@ -310,12 +352,12 @@ class ExamEngine:
                strongest_area=?, weakest_area=? WHERE id=? AND user_id=?""",
             (
                 _now(),
-                marking["roleplay"]["score"] if exam_type in {"full", "roleplay"} else None,
-                marking["topic_talk"]["score"] if exam_type in {"full", "topic_talk"} else None,
-                marking["picture"]["score"] if exam_type in {"full", "picture"} else None,
-                marking["total"] if exam_type == "full" else self._partial_total(exam_type, marking),
-                marking["strongest_area"],
-                marking["weakest_area"],
+                _section_score(marking, "roleplay") if exam_type in {"full", "roleplay"} else None,
+                _section_score(marking, "topic_talk") if exam_type in {"full", "topic_talk"} else None,
+                _section_score(marking, "picture") if exam_type in {"full", "picture"} else None,
+                marking.get("total") if exam_type == "full" else self._partial_total(exam_type, marking),
+                marking.get("strongest_area"),
+                marking.get("weakest_area"),
                 attempt["id"],
                 attempt["user_id"],
             ),
@@ -366,12 +408,12 @@ class ExamEngine:
             for t in payload.get("turns") or []
         )
 
-    def _partial_total(self, exam_type: str, marking: dict) -> int:
+    def _partial_total(self, exam_type: str, marking: dict) -> int | None:
         return {
-            "roleplay": marking["roleplay"]["score"],
-            "topic_talk": marking["topic_talk"]["score"],
-            "picture": marking["picture"]["score"],
-        }.get(exam_type, marking["total"])
+            "roleplay": _section_score(marking, "roleplay"),
+            "topic_talk": _section_score(marking, "topic_talk"),
+            "picture": _section_score(marking, "picture"),
+        }.get(exam_type, marking.get("total") if isinstance(marking, dict) else None)
 
     def _get(self, attempt_id: int, user_id: int):
         attempt = query_one("SELECT * FROM attempts WHERE id = ? AND user_id = ?", (attempt_id, user_id))
@@ -561,6 +603,7 @@ Return JSON: {{"prompt_id": "{options[0]['id']}", "reason": "short reason"}}""",
                 )
                 items = []
                 for row in rows:
+                    row = _row_dict(row)
                     metrics = {}
                     raw = row.get("speech_metrics_json")
                     if raw:

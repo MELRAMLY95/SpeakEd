@@ -232,16 +232,21 @@ def _run(sql, args=(), commit=False):
             raise
         lastrowid = None
         if commit:
-            lastrowid = _returned_id(cursor)
-            if lastrowid is None and converted.strip().upper().startswith("INSERT"):
-                # Callers use this id to look the new row straight back up, so a
-                # missing id must fail here rather than surface later as a
-                # confusing lookup miss in an unrelated part of the app.
-                db.rollback()
-                raise RuntimeError(
-                    "PostgreSQL INSERT did not return an id; the row was not created. "
-                    f"Statement: {converted.split('VALUES')[0].strip()}"
-                )
+            # Never fetchone() after UPDATE/DELETE. psycopg2 raises
+            # ProgrammingError ("no results to fetch") and that aborts the
+            # whole PostgreSQL transaction. Retry marking starts with an UPDATE.
+            is_insert = converted.strip().upper().startswith("INSERT")
+            if is_insert:
+                lastrowid = _returned_id(cursor)
+                if lastrowid is None and "ON CONFLICT" not in converted.upper():
+                    # Callers use this id to look the new row straight back up, so a
+                    # missing id must fail here rather than surface later as a
+                    # confusing lookup miss in an unrelated part of the app.
+                    db.rollback()
+                    raise RuntimeError(
+                        "PostgreSQL INSERT did not return an id; the row was not created. "
+                        f"Statement: {converted.split('VALUES')[0].strip()}"
+                    )
             db.commit()
         return CursorResult(cursor, lastrowid)
     cursor = db.execute(sql, args)

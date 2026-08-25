@@ -172,3 +172,40 @@ def test_two_attempts_get_distinct_ids(logged_in):
     first_id = int(first.headers["Location"].rstrip("/").split("/")[-1])
     second_id = int(second.headers["Location"].rstrip("/").split("/")[-1])
     assert first_id != second_id
+
+
+def test_retry_marking_does_not_500_on_postgres(logged_in, monkeypatch):
+    """Retry marking starts with an UPDATE. Fetching a result from that UPDATE
+    used to abort the PostgreSQL transaction and 500 before marks were saved."""
+    from tests.fake_ai import install_fake
+
+    app, client = logged_in
+    start = _start(client, "roleplay")
+    attempt_id = int(start.headers["Location"].rstrip("/").split("/")[-1])
+    finished = None
+    for _ in range(8):
+        response = client.post(
+            f"/exam/{attempt_id}/turn",
+            json={
+                "transcript": "I go to the cinema about twice a month with my sister.",
+                "metrics": {"duration_ms": 4000, "word_count": 12},
+            },
+        )
+        assert response.status_code == 200, response.get_data(as_text=True)
+        data = response.get_json()
+        if data.get("redirect"):
+            finished = data["redirect"]
+            break
+    assert finished, "roleplay did not complete"
+    retry = client.post(f"/exam/{attempt_id}/retry-marking", follow_redirects=False)
+    assert retry.status_code in {302, 303}, retry.get_data(as_text=True)
+    assert b"Internal Server Error" not in retry.data
+
+    install_fake(monkeypatch)
+    marked = client.post(f"/exam/{attempt_id}/retry-marking", follow_redirects=True)
+    assert marked.status_code == 200
+    assert b"Internal Server Error" not in marked.data
+    with app.app_context():
+        row = query_one("SELECT status, roleplay_score FROM attempts WHERE id = ?", (attempt_id,))
+    assert row["status"] == "completed"
+    assert row["roleplay_score"] is not None

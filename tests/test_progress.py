@@ -138,3 +138,17 @@ def test_user_cannot_retry_someone_elses_attempt(client, app):
     assert "/dashboard" in (response.headers.get("Location") or "")
     detail = client.get(f"/history/{attempt_id}")
     assert detail.status_code == 404
+
+
+def test_retry_marking_does_not_500_when_examiner_crashes(client, app, monkeypatch):
+    signup(client)
+    attempt_id = _seed_unmarked(app, exam_type="roleplay")
+
+    def boom(*args, **kwargs):
+        raise RuntimeError("examiner crashed")
+
+    monkeypatch.setattr("routes.exam.engine.retry_marking", boom)
+    response = client.post(f"/exam/{attempt_id}/retry-marking", follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Internal Server Error" not in response.data
+    assert b"could not be completed" in response.data.lower() or b"Retry marking" in response.data

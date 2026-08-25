@@ -2,7 +2,7 @@ from flask import flash, g, jsonify, redirect, render_template, request, url_for
 import json
 import logging
 
-from ai.examiner import ExamEngine
+from ai.examiner import ExamEngine, _row_dict
 from ai.speech import SpeechError, process_upload
 from database.database import query_all, query_one
 from routes import exam_bp
@@ -162,7 +162,12 @@ def retry_marking(attempt_id):
     attempt = _owned(attempt_id)
     if attempt is None:
         return redirect(url_for("dashboard.home"))
-    finished = engine.retry_marking(attempt_id, g.user["id"])
+    try:
+        finished = engine.retry_marking(attempt_id, g.user["id"])
+    except Exception:
+        logger.exception("Retry marking crashed for attempt %s", attempt_id)
+        flash("Marking could not be completed. Please wait a minute and try again.", "error")
+        return redirect(url_for("progress.attempt", attempt_id=attempt_id))
     if finished.get("error") and not finished.get("marking"):
         flash(finished["error"], "error")
         return redirect(url_for("progress.attempt", attempt_id=attempt_id))
@@ -181,20 +186,27 @@ def results(attempt_id):
     attempt = engine.restore_scores_from_marking(attempt)
     marking_row = query_one("SELECT * FROM markings WHERE attempt_id = ?", (attempt_id,))
     feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
-    marking = json.loads(marking_row["justification_json"]) if marking_row else {}
+    marking = {}
+    if marking_row and marking_row["justification_json"]:
+        try:
+            loaded = json.loads(marking_row["justification_json"])
+            if isinstance(loaded, dict):
+                marking = loaded
+        except json.JSONDecodeError:
+            marking = {}
     if marking and not marking.get("unavailable") and not feedback_row:
         from ai.feedback import feedback_from_marking
 
-        transcripts = [dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
+        transcripts = [_row_dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
         feedback_from_marking(attempt_id, marking, transcripts)
         feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
     feedback = None
     if feedback_row:
         feedback = {
-            "strengths": json.loads(feedback_row["strengths_json"]),
-            "weaknesses": json.loads(feedback_row["weaknesses_json"]),
-            "lost_marks": json.loads(feedback_row["lost_marks_json"]),
-            "recommendations": json.loads(feedback_row["recommendations_json"]),
+            "strengths": json.loads(feedback_row["strengths_json"] or "[]"),
+            "weaknesses": json.loads(feedback_row["weaknesses_json"] or "[]"),
+            "lost_marks": json.loads(feedback_row["lost_marks_json"] or "[]"),
+            "recommendations": json.loads(feedback_row["recommendations_json"] or "[]"),
             "examiner_comments": feedback_row["examiner_comments"],
         }
     state = engine.state(attempt_id, g.user["id"])
