@@ -96,17 +96,29 @@ class FakeAIProvider(AIProvider):
             ids = re.findall(r'"id": "([^"]+)"', prompt)
             return {"prompt_id": ids[0] if ids else "", "reason": "next unused bank prompt"}
         if "Role Play" in prompt or "Task 1" in prompt:
-            mark = 0 if len(words) <= 1 else (1 if len(words) < 5 else 2)
-            if "QUESTION REQUIRED: yes" in prompt and "?" not in text:
-                mark = 0
-            return {
-                "mark": mark,
-                "reasoning": f"Assessed the actual response ({len(words)} words).",
-                "evidence": [text[:80] or "(empty)"],
-                "strengths": [f"Content: {text[:60]}" if text else "No speech"],
-                "weaknesses": ["Very brief." if len(words) < 8 else "Could add more precision."],
-                "improvements": ["Extend the answer with a reason." if len(words) < 12 else "Keep developing ideas."],
-            }
+            responses = re.findall(r'STUDENT RESPONSE: "(.*?)"', prompt, re.S)
+            if not responses:
+                responses = [text]
+            items = []
+            required_flags = re.findall(r"QUESTION REQUIRED: (yes|no)", prompt)
+            for i, resp in enumerate(responses):
+                words = re.findall(r"[A-Za-z']+", resp)
+                mark = 0 if len(words) <= 1 else (1 if len(words) < 5 else 2)
+                required = required_flags[i] == "yes" if i < len(required_flags) else "QUESTION REQUIRED: yes" in prompt
+                if required and "?" not in resp:
+                    mark = 0
+                items.append({
+                    "prompt_index": i + 1,
+                    "mark": mark,
+                    "reasoning": f"Assessed the actual response ({len(words)} words).",
+                    "evidence": [resp[:80] or "(empty)"],
+                    "strengths": [f"Content: {resp[:60]}" if resp else "No speech"],
+                    "weaknesses": ["Very brief." if len(words) < 8 else "Could add more precision."],
+                    "improvements": ["Extend the answer with a reason." if len(words) < 12 else "Keep developing ideas."],
+                })
+            if "prompt_marks" in prompt or len(items) > 1:
+                return {"prompt_marks": items}
+            return items[0]
         if "COMMUNICATION AND CONTENT" in prompt or "communication_score" in prompt or "Task 2" in prompt or "Task 3" in prompt:
             comm = 3 if len(words) < 20 else (7 if len(words) < 80 else 10)
             ling = 2 if len(words) < 20 else (5 if len(words) < 80 else 7)

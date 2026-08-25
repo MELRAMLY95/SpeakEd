@@ -5,6 +5,11 @@ from typing import Any
 from ai.json_util import parse_json_object
 
 
+def _is_quota_error(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return "429" in text or "resource_exhausted" in text or "quota" in text
+
+
 @dataclass
 class AIMessage:
     role: str
@@ -52,7 +57,7 @@ class AIProvider(ABC):
         prompt: str,
         *,
         system: str = "",
-        max_tokens: int = 400,
+        max_tokens: int = 800,
         temperature: float = 0.2,
     ) -> dict:
         last_error: Exception | None = None
@@ -68,6 +73,8 @@ class AIProvider(ABC):
                 return parse_json_object(raw)
             except Exception as exc:
                 last_error = exc
+                if _is_quota_error(exc):
+                    break
         raise ValueError(f"AI JSON was invalid after retry: {last_error}")
 
     def supports_audio(self) -> bool:
@@ -93,7 +100,7 @@ class AIProvider(ABC):
         mime_type: str,
         *,
         system: str = "",
-        max_tokens: int = 400,
+        max_tokens: int = 800,
         temperature: float = 0.2,
     ) -> dict:
         last_error: Exception | None = None
@@ -111,6 +118,8 @@ class AIProvider(ABC):
                 return parse_json_object(raw)
             except Exception as exc:
                 last_error = exc
+                if _is_quota_error(exc):
+                    break
         raise ValueError(f"AI JSON was invalid after retry: {last_error}")
 
     def transcribe_audio(self, audio_bytes: bytes, mime_type: str) -> str:

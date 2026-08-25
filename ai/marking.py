@@ -6,7 +6,7 @@ from pathlib import Path
 
 from database.database import execute
 from ai.ai_provider import get_ai
-from ai.speech import collect_attempt_audio, read_audio_file
+from ai.speech import collect_attempt_audio
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +20,14 @@ STRONG_EXPRESSIONS = {"certainly", "definitely", "clearly", "obviously", "undoub
 CONNECTORS = {"moreover", "furthermore", "in addition", "additionally", "on the other hand", "consequently", "as a result"}
 
 
-class MarkingUnavailable(Exception):
-    pass
+def _examiner_failure(exc: Exception, fallback: str) -> MarkingUnavailable:
+    text = str(exc)
+    if "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower():
+        return MarkingUnavailable(
+            "The Gemini examiner hit its request limit. Wait about a minute, then use Retry marking. "
+            "The free tier allows a small number of requests per minute; answering quickly uses them up."
+        )
+    return MarkingUnavailable(fallback)
 
 
 def load_scheme() -> dict:
@@ -246,49 +252,79 @@ def mark_roleplay(turns: list[dict], scheme: dict, *, ai=None, audio=None) -> di
     grid = scheme["task1_roleplay"]
     if not turns:
         return _empty_roleplay(scheme)
-    prompt_marks = []
+
+    prepared = []
+    blocks = []
     for index, turn in enumerate(turns[:5], start=1):
         response_text = turn.get("text", "")
-        requires_question = turn.get("requires_question", False)
+        requires_question = bool(turn.get("requires_question", False))
         question = (turn.get("question") or "").strip()
         analysis = analyse_text(response_text, turn.get("metrics"))
-        turn_audio = audio
-        if not turn_audio or not turn_audio[0]:
-            turn_audio = read_audio_file((turn.get("metrics") or {}).get("audio_path"))
-        audio_note = (
-            "You have the student's original recording. You may comment on pronunciation only if it is audible."
-            if turn_audio[0] and ai.supports_audio()
-            else "You do NOT have audio. Do not claim to have assessed pronunciation or intonation from sound."
+        prepared.append((index, response_text, requires_question, analysis))
+        blocks.append(
+            f'TURN {index}\n'
+            f'EXAMINER PROMPT: "{question or "(not recorded)"}"\n'
+            f'STUDENT RESPONSE: "{response_text}"\n'
+            f'QUESTION REQUIRED: {"yes — award 0 if the student did not ask a question" if requires_question else "no"}'
         )
-        prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) Task 1 Role Play turn.
 
-EXAMINER PROMPT: "{question or '(not recorded)'}"
-STUDENT RESPONSE: "{response_text}"
-QUESTION REQUIRED: {"yes — award 0 if the student did not ask a question" if requires_question else "no"}
-{audio_note}
+    audio_tuple = audio
+    if not audio_tuple or not audio_tuple[0]:
+        data, mime, any_audio = collect_attempt_audio(turns)
+        audio_tuple = (data, mime) if any_audio else (None, None)
+    audio_note = (
+        "You have a recording from this task. You may comment on pronunciation only if it is audible."
+        if audio_tuple[0] and ai.supports_audio()
+        else "You do NOT have audio. Do not claim to have assessed pronunciation or intonation from sound."
+    )
+    prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) Task 1 Role Play.
+
+{chr(10).join(blocks)}
 
 OFFICIAL CRITERIA:
 {_scheme_lines(grid["per_prompt"])}
 
-Judge whether the answer clearly and appropriately addresses THIS examiner prompt.
+{audio_note}
+Judge whether each answer clearly and appropriately addresses THAT examiner prompt.
 Do not reward a fluent answer that does not fit the prompt.
 Do not invent content the student did not say.
-If the student response is empty, award 0.
+If a student response is empty, award 0 for that turn.
 
 Return JSON:
-{{"mark": 0, "reasoning": "one sentence citing the descriptor", "evidence": ["short phrase from the student"], "strengths": ["specific strength"], "weaknesses": ["specific weakness"], "improvements": ["specific action"]}}"""
+{{"prompt_marks": [{{"prompt_index": 1, "mark": 0, "reasoning": "one sentence citing the descriptor", "evidence": ["short phrase from the student"], "strengths": ["specific strength"], "weaknesses": ["specific weakness"], "improvements": ["specific action"]}}]}}
+Include one object per TURN, in order."""
+    try:
+        result = _call_json(
+            ai,
+            prompt,
+            "You are a Pearson Edexcel 4XES2 speaking examiner. Return valid JSON only.",
+            900,
+            audio_tuple,
+        )
+    except Exception as exc:
+        logger.warning("AI marking failed for roleplay: %s", exc)
+        raise _examiner_failure(
+            exc, "The AI examiner did not return a valid role-play mark. No score was recorded."
+        ) from exc
+
+    raw_items = result.get("prompt_marks")
+    if not isinstance(raw_items, list) or not raw_items:
+        raw_items = [result]
+    by_index = {}
+    ordered = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            continue
+        ordered.append(item)
         try:
-            result = _call_json(
-                ai,
-                prompt,
-                "You are a Pearson Edexcel 4XES2 speaking examiner. Return valid JSON only.",
-                280,
-                turn_audio,
-            )
-        except Exception as exc:
-            logger.warning("AI marking failed for roleplay turn %s: %s", index, exc)
-            raise MarkingUnavailable("The AI examiner did not return a valid role-play mark. No score was recorded.") from exc
-        mark = _require_int(result, "mark", 0, 2)
+            by_index[int(item.get("prompt_index"))] = item
+        except (TypeError, ValueError):
+            pass
+
+    prompt_marks = []
+    for offset, (index, response_text, requires_question, analysis) in enumerate(prepared):
+        item = by_index.get(index) or (ordered[offset] if offset < len(ordered) else {})
+        mark = _require_int(item, "mark", 0, 2)
         if not (response_text or "").strip():
             mark = 0
         elif requires_question and not analysis["asked_question"]:
@@ -300,11 +336,11 @@ Return JSON:
             "max": 2,
             "descriptor": descriptor,
             "analysis": analysis,
-            "evidence": _list_field(result, "evidence") or [(response_text or "")[:240]],
-            "strengths": _list_field(result, "strengths"),
-            "weaknesses": _list_field(result, "weaknesses"),
-            "improvements": _list_field(result, "improvements"),
-            "reasoning": str(result.get("reasoning") or ""),
+            "evidence": _list_field(item, "evidence") or [(response_text or "")[:240]],
+            "strengths": _list_field(item, "strengths"),
+            "weaknesses": _list_field(item, "weaknesses"),
+            "improvements": _list_field(item, "improvements"),
+            "reasoning": str(item.get("reasoning") or ""),
         })
     total = sum(item["mark"] for item in prompt_marks)
     return {
@@ -315,8 +351,8 @@ Return JSON:
         "justification": "AI marking using official Pearson 4XES2 Task 1 mark scheme descriptors.",
         "evidence": [item["evidence"][0] for item in prompt_marks if item.get("evidence")],
         "strengths": [s for item in prompt_marks for s in item.get("strengths") or []][:5],
-        "weaknesses": [s for item in prompt_marks for s in item.get("weaknesses") or []][:5],
-        "improvements": [s for item in prompt_marks for s in item.get("improvements") or []][:5],
+        "weaknesses": [w for item in prompt_marks for w in item.get("weaknesses") or []][:5],
+        "improvements": [i for item in prompt_marks for i in item.get("improvements") or []][:5],
     }
 
 
@@ -366,14 +402,14 @@ Return JSON:
             ai,
             prompt,
             "You are a Pearson Edexcel 4XES2 speaking examiner. Return valid JSON only.",
-            400,
+            800,
             audio or (None, None),
         )
     except MarkingUnavailable:
         raise
     except Exception as exc:
         logger.warning("AI marking failed for %s: %s", task, exc)
-        raise MarkingUnavailable("The AI examiner did not return a valid mark. No score was recorded.") from exc
+        raise _examiner_failure(exc, "The AI examiner did not return a valid mark. No score was recorded.") from exc
     comm = _require_int(result, "communication_score", 0, 12)
     ling = _require_int(result, "linguistic_score", 0, 8)
     extra = {

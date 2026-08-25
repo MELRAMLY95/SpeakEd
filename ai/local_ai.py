@@ -188,13 +188,52 @@ class GeminiProvider(AIProvider):
 
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str, timeout: int = 30):
+    def __init__(self, api_key: str, model: str, timeout: int = 90):
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
 
     def is_available(self) -> bool:
         return bool(self.api_key)
+
+    def _is_gemini3(self) -> bool:
+        return "gemini-3" in (self.model or "").lower()
+
+    def _generation_config(self, *, temperature: float, max_tokens: int, json_mode: bool) -> dict[str, Any]:
+        # Gemini 3.6 Flash thinks at "medium" by default. Those thought tokens
+        # count against maxOutputTokens, so a 280-token JSON mark comes back
+        # empty and marking_unavailable even with a valid API key.
+        config: dict[str, Any] = {"maxOutputTokens": max_tokens}
+        if self._is_gemini3():
+            config["thinkingConfig"] = {"thinkingLevel": "minimal"}
+        else:
+            config["temperature"] = temperature
+            config["thinkingConfig"] = {"thinkingBudget": 0}
+        if json_mode:
+            config["responseMimeType"] = "application/json"
+        return config
+
+    def _post(self, payload: dict[str, Any]) -> str:
+        data = json.dumps(payload).encode("utf-8")
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model}:generateContent?key={self.api_key}"
+        )
+        request = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                body = json.loads(response.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            detail = exc.read().decode("utf-8", errors="replace")[:800]
+            raise RuntimeError(f"Gemini API error {exc.code}: {detail}") from exc
+        except urllib.error.URLError as exc:
+            raise RuntimeError(f"Gemini connection error: {exc.reason}") from exc
+        return self._text_from_body(body)
 
     def generate(
         self,
@@ -219,30 +258,13 @@ class GeminiProvider(AIProvider):
 
         payload: dict[str, Any] = {
             "contents": contents,
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-            },
+            "generationConfig": self._generation_config(
+                temperature=temperature, max_tokens=max_tokens, json_mode=json_mode
+            ),
         }
         if system_parts:
             payload["systemInstruction"] = {"parts": [{"text": "\n\n".join(system_parts)}]}
-        if json_mode:
-            payload["generationConfig"]["responseMimeType"] = "application/json"
-
-        data = json.dumps(payload).encode("utf-8")
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.model}:generateContent?key={self.api_key}"
-        )
-        request = urllib.request.Request(
-            url,
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=self.timeout) as response:
-            body = json.loads(response.read().decode("utf-8"))
-        return self._text_from_body(body)
+        return self._post(payload)
 
     def supports_audio(self) -> bool:
         return bool(self.api_key)
@@ -269,29 +291,13 @@ class GeminiProvider(AIProvider):
         ]
         payload: dict[str, Any] = {
             "contents": [{"role": "user", "parts": parts}],
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-            },
+            "generationConfig": self._generation_config(
+                temperature=temperature, max_tokens=max_tokens, json_mode=json_mode
+            ),
         }
         if system:
             payload["systemInstruction"] = {"parts": [{"text": system}]}
-        if json_mode:
-            payload["generationConfig"]["responseMimeType"] = "application/json"
-        data = json.dumps(payload).encode("utf-8")
-        url = (
-            f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.model}:generateContent?key={self.api_key}"
-        )
-        request = urllib.request.Request(
-            url,
-            data=data,
-            headers={"Content-Type": "application/json"},
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=self.timeout) as response:
-            body = json.loads(response.read().decode("utf-8"))
-        return self._text_from_body(body)
+        return self._post(payload)
 
     def transcribe_audio(self, audio_bytes: bytes, mime_type: str) -> str:
         text = self.generate_with_audio(
@@ -309,8 +315,15 @@ class GeminiProvider(AIProvider):
         if not candidates:
             block_reason = (body.get("promptFeedback") or {}).get("blockReason")
             raise RuntimeError(f"Gemini returned no candidates (blockReason={block_reason!r})")
+        finish = candidates[0].get("finishReason")
         parts = candidates[0].get("content", {}).get("parts", [])
-        return "".join(p.get("text", "") for p in parts)
+        text = "".join(p.get("text", "") for p in parts if not p.get("thought"))
+        if not text.strip():
+            raise RuntimeError(
+                f"Gemini returned no visible text (finishReason={finish!r}). "
+                "Thought tokens likely consumed the output budget."
+            )
+        return text
 
     def generate_text(
         self,
