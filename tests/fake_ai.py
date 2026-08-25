@@ -17,12 +17,14 @@ class FakeAIProvider(AIProvider):
         supports_audio_flag: bool = False,
         transcribe_fail: bool = False,
         transcribe_empty: bool = False,
+        fail_feedback: bool = False,
     ):
         self.fail = fail
         self.invalid_json = invalid_json
         self.supports_audio_flag = supports_audio_flag
         self.transcribe_fail = transcribe_fail
         self.transcribe_empty = transcribe_empty
+        self.fail_feedback = fail_feedback
         self.prompts: list[str] = []
         self.audio_calls = 0
 
@@ -34,6 +36,10 @@ class FakeAIProvider(AIProvider):
 
     def generate(self, messages: list[AIMessage], *, json_mode: bool = False, temperature: float = 0.2, max_tokens: int = 800) -> str:
         prompt = messages[-1].content if messages else ""
+        if self.fail:
+            raise RuntimeError("provider failure")
+        if self.fail_feedback and "STUDENT QUESTION/ANSWER RECORD" in prompt:
+            raise RuntimeError("feedback provider failure")
         if json_mode:
             return json.dumps(self._json_for(prompt))
         return self._text_for(prompt)
@@ -41,6 +47,8 @@ class FakeAIProvider(AIProvider):
     def generate_text(self, prompt: str, max_tokens: int = 100, temperature: float = 0.7, json_mode: bool = False, system: str = "") -> str:
         if self.fail:
             raise RuntimeError("provider failure")
+        if self.fail_feedback and "STUDENT QUESTION/ANSWER RECORD" in prompt:
+            raise RuntimeError("feedback provider failure")
         if self.invalid_json and json_mode:
             return "this is not json {"
         self.prompts.append(prompt)

@@ -4,7 +4,7 @@ import logging
 
 from ai.examiner import ExamEngine
 from ai.speech import SpeechError, process_upload
-from database.database import query_one
+from database.database import query_all, query_one
 from routes import exam_bp
 from routes.auth import login_required
 from services.image_fetcher import get_image_fetcher
@@ -174,9 +174,16 @@ def results(attempt_id):
     if attempt["status"] == "in_progress":
         engine.finish(attempt_id, g.user["id"])
         attempt = _owned(attempt_id)
+    attempt = engine.restore_scores_from_marking(attempt)
     marking_row = query_one("SELECT * FROM markings WHERE attempt_id = ?", (attempt_id,))
     feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
     marking = json.loads(marking_row["justification_json"]) if marking_row else {}
+    if marking and not marking.get("unavailable") and not feedback_row:
+        from ai.feedback import feedback_from_marking
+
+        transcripts = [dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
+        feedback_from_marking(attempt_id, marking, transcripts)
+        feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
     feedback = None
     if feedback_row:
         feedback = {

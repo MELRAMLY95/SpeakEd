@@ -30,6 +30,8 @@ def test_full_exam_flow_text_turns(client, monkeypatch):
             results = client.get(data["redirect"])
             assert results.status_code == 200
             assert b"practice result" in results.data.lower() or b"Practice result" in results.data or b"4XES2" in results.data
+            assert b"could not complete marking" not in results.data.lower()
+            assert b"/50" in results.data
             return
     raise AssertionError("exam did not complete")
 
@@ -193,3 +195,67 @@ def test_marking_unavailable_without_ai_on_finish(client):
             assert b"could not complete marking" in page.data.lower() or b"Retry marking" in page.data
             return
     raise AssertionError("roleplay did not complete")
+
+
+def _finish_roleplay(client) -> str:
+    client.post("/exam/start", data={"exam_type": "roleplay", "mode": "practice"}, follow_redirects=True)
+    for _ in range(8):
+        response = client.post(
+            "/exam/1/turn",
+            json={
+                "transcript": "I go to the cinema about twice a month with my sister because we enjoy action films.",
+                "metrics": {"duration_ms": 4000, "word_count": 18},
+            },
+        )
+        data = response.get_json()
+        if data.get("redirect"):
+            return data["redirect"]
+    raise AssertionError("roleplay did not complete")
+
+
+def test_scores_are_saved_when_feedback_ai_fails(client, app, monkeypatch):
+    install_fake(monkeypatch, FakeAIProvider(fail_feedback=True))
+    signup(client)
+    redirect_url = _finish_roleplay(client)
+    page = client.get(redirect_url)
+    assert page.status_code == 200
+    assert b"could not complete marking" not in page.data.lower()
+    assert b"No score was recorded" not in page.data
+    assert b"/10" in page.data
+    with app.app_context():
+        from database.database import query_one
+
+        attempt = query_one("SELECT status, roleplay_score, total_score FROM attempts WHERE id = 1")
+        assert attempt["status"] == "completed"
+        assert attempt["roleplay_score"] is not None
+        assert attempt["roleplay_score"] >= 0
+        feedback = query_one("SELECT strengths_json FROM feedback WHERE attempt_id = 1")
+        assert feedback is not None
+        assert json.loads(feedback["strengths_json"])
+
+
+def test_results_restore_scores_cleared_after_marking(client, app, monkeypatch):
+    install_fake(monkeypatch)
+    signup(client)
+    redirect_url = _finish_roleplay(client)
+    with app.app_context():
+        from database.database import execute, query_one
+
+        execute(
+            """UPDATE attempts SET status='marking_unavailable', roleplay_score=NULL, topic_talk_score=NULL,
+               picture_score=NULL, total_score=NULL, strongest_area=NULL, weakest_area=NULL WHERE id=1"""
+        )
+        cleared = query_one("SELECT roleplay_score, status FROM attempts WHERE id = 1")
+        assert cleared["roleplay_score"] is None
+        assert cleared["status"] == "marking_unavailable"
+    page = client.get(redirect_url)
+    assert page.status_code == 200
+    assert b"could not complete marking" not in page.data.lower()
+    assert b"/10" in page.data
+    with app.app_context():
+        from database.database import query_one
+
+        restored = query_one("SELECT status, roleplay_score, total_score FROM attempts WHERE id = 1")
+        assert restored["status"] == "completed"
+        assert restored["roleplay_score"] is not None
+

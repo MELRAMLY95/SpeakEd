@@ -7,7 +7,7 @@
   <h1>{{ attempt.exam_type.replace('_', ' ') }} · {{ attempt.mode }}</h1>
   <ul class="attempt-meta">
     <li>{{ attempt.started_at[:16].replace('T', ' ') }}</li>
-    <li>Score <strong>{{ attempt.total_score if attempt.total_score is not none else '—' }}</strong></li>
+    <li>Score <strong>{{ attempt.total_score if attempt.total_score is not none else (marking.total if marking and marking.total is not none else '—') }}</strong></li>
     {% if marking %}
       <li>Role play <strong>{{ marking.roleplay.score }}/10</strong></li>
       <li>Topic talk <strong>{{ marking.topic_talk.score }}/20</strong></li>

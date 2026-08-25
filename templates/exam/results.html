@@ -11,12 +11,17 @@
     </div>
   </div>
 {% endmacro %}
+{% set rp = attempt.roleplay_score if attempt.roleplay_score is not none else (marking.roleplay.score if marking and marking.roleplay else none) %}
+{% set tt = attempt.topic_talk_score if attempt.topic_talk_score is not none else (marking.topic_talk.score if marking and marking.topic_talk else none) %}
+{% set pic = attempt.picture_score if attempt.picture_score is not none else (marking.picture.score if marking and marking.picture else none) %}
+{% set tot = attempt.total_score if attempt.total_score is not none else (marking.total if marking and marking.total is not none else none) %}
+{% set has_scores = rp is not none or tt is not none or pic is not none %}
 <article class="wrap results">
   <p class="eyebrow">Practice result</p>
   <h1>4XES2 speaking practice result</h1>
   <p class="notice">{{ disclaimer }}</p>
 
-  {% if attempt.status == 'marking_unavailable' %}
+  {% if attempt.status == 'marking_unavailable' and not has_scores %}
     <div class="result-block result-block-warn">
       <h2>Marking unavailable</h2>
       <p>The AI examiner could not complete marking. No score was recorded.</p>
@@ -30,27 +35,27 @@
 
   <div class="score-grid">
     {% if attempt.exam_type == 'full' or attempt.exam_type == 'roleplay' %}
-      {{ score_card('Role play', attempt.roleplay_score, 10) }}
+      {{ score_card('Role play', rp, 10) }}
     {% endif %}
     {% if attempt.exam_type == 'full' or attempt.exam_type == 'topic_talk' %}
-      {{ score_card('Topic talk', attempt.topic_talk_score, 20) }}
+      {{ score_card('Topic talk', tt, 20) }}
     {% endif %}
     {% if attempt.exam_type == 'full' or attempt.exam_type == 'picture' %}
-      {{ score_card('Picture conversation', attempt.picture_score, 20) }}
+      {{ score_card('Picture conversation', pic, 20) }}
     {% endif %}
     {% if attempt.exam_type == 'full' %}
-      {{ score_card('Total', attempt.total_score, 50, true) }}
+      {{ score_card('Total', tot, 50, true) }}
     {% endif %}
   </div>
 
   <div class="results-split">
     <div class="result-block result-block-ok">
       <h2>Strongest area</h2>
-      <p>{{ attempt.strongest_area }}</p>
+      <p>{{ attempt.strongest_area or (marking.strongest_area if marking else '—') }}</p>
     </div>
     <div class="result-block result-block-warn">
       <h2>Weakest area</h2>
-      <p>{{ attempt.weakest_area }}</p>
+      <p>{{ attempt.weakest_area or (marking.weakest_area if marking else '—') }}</p>
     </div>
   </div>
 
