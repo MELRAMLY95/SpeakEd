@@ -6,11 +6,18 @@ from dotenv import load_dotenv
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(BASE_DIR / ".env")
 
+DEV_SECRET_KEY = "dev-insecure-change-me"
+LOCAL_SQLITE_URL = f"sqlite:///{BASE_DIR / 'instance' / 'speaked.db'}"
+
 
 class Config:
-    SECRET_KEY = os.environ.get("SECRET_KEY", "dev-insecure-change-me")
+    SECRET_KEY = os.environ.get("SECRET_KEY", DEV_SECRET_KEY)
     DEBUG = os.environ.get("FLASK_DEBUG", "0") == "1"
-    DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{BASE_DIR / 'instance' / 'speaked.db'}")
+    # An unset DATABASE_URL must not quietly become SQLite in production: on
+    # Render the filesystem is ephemeral, so accounts would disappear on every
+    # redeploy. validate_runtime_config() turns that situation into a startup
+    # failure instead of silent data loss.
+    DATABASE_URL = (os.environ.get("DATABASE_URL") or "").strip() or LOCAL_SQLITE_URL
     AI_PROVIDER = os.environ.get("AI_PROVIDER", "auto")
     # Z.AI (GLM) - Primary AI provider
     ZAI_API_KEY = os.environ.get("ZAI_API_KEY", "")
@@ -28,9 +35,13 @@ class Config:
     # Render sets RENDER=true on every service automatically, so this needs
     # no manual configuration — see https://render.com/docs/environment-variables
     IS_RENDER = os.environ.get("RENDER", "").lower() == "true"
+    # Anything hosted counts as production. SPEAKED_ENV lets non-Render hosts
+    # opt in to the same strict startup checks.
+    IS_PRODUCTION = IS_RENDER or os.environ.get("SPEAKED_ENV", "").lower() == "production"
     STORE_AUDIO = os.environ.get("STORE_AUDIO", "false").lower() == "true"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
+    SESSION_COOKIE_SECURE = IS_PRODUCTION
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 24 * 14
     MAX_CONTENT_LENGTH = 8 * 1024 * 1024
     WARMUP_SECONDS = 60
@@ -44,7 +55,38 @@ class Config:
 class TestConfig(Config):
     TESTING = True
     DEBUG = True
-    DATABASE_URL = "sqlite:///:memory:"
+    # Not ":memory:" — the app opens one connection per request, and each new
+    # connection to ":memory:" would get its own empty database, so nothing
+    # would persist between requests.
+    DATABASE_URL = f"sqlite:///{BASE_DIR / 'instance' / 'test-default.db'}"
     SECRET_KEY = "test-secret"
     WTF_CSRF_ENABLED = False
     AI_PROVIDER = "rule"
+    IS_PRODUCTION = False
+    SESSION_COOKIE_SECURE = False
+
+
+def validate_runtime_config(config: dict) -> None:
+    """Fail fast on configuration that would silently lose user data.
+
+    Raises RuntimeError so a misconfigured deployment refuses to boot rather
+    than running on a database that disappears on the next restart.
+    """
+    if not config.get("IS_PRODUCTION"):
+        return
+
+    url = (config.get("DATABASE_URL") or "").strip()
+    if not url.startswith(("postgres://", "postgresql://")):
+        raise RuntimeError(
+            "Production requires a PostgreSQL DATABASE_URL. Got "
+            f"{url.split('://')[0] or '(empty)'}://... Render's disk is ephemeral, so SQLite "
+            "would lose every account and all progress on each redeploy. Attach a PostgreSQL "
+            "instance and set DATABASE_URL."
+        )
+
+    secret = config.get("SECRET_KEY") or ""
+    if not secret or secret == DEV_SECRET_KEY:
+        raise RuntimeError(
+            "Production requires a stable SECRET_KEY environment variable. Without one, "
+            "session cookies cannot be trusted and every user would be logged out."
+        )

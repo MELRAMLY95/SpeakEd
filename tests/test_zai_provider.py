@@ -237,10 +237,9 @@ class TestZAIProvider:
 
         provider = ZAIProvider("test-key", "glm-4", "https://api.z.ai/api/paas/v4")
         
-        # Should return fallback text in non-JSON mode
-        result = provider.generate_text("Test prompt", json_mode=False)
-        
-        assert "Good response. Keep practicing" in result
+        # Should raise exception
+        with pytest.raises(Exception):
+            provider.generate_text("Test prompt", json_mode=False)
 
     @patch('urllib.request.urlopen')
     def test_generate_text_method_error_json_mode_raises(self, mock_urlopen):
@@ -302,3 +301,7 @@ class TestZAIProvider:
         """Test that provider name is set correctly."""
         provider = ZAIProvider("test-key", "glm-4", "https://api.z.ai/api/paas/v4")
         assert provider.name == "zai"
+
+    def test_zai_does_not_claim_audio_support(self):
+        provider = ZAIProvider("test-key", "glm-4", "https://api.z.ai/api/paas/v4")
+        assert provider.supports_audio() is False

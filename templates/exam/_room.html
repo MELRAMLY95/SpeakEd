@@ -4,6 +4,11 @@
     <p class="exam-stage">{{ state.stage_label }}</p>
     <p class="exam-progress">{{ state.progress.step }} / {{ state.progress.total }}</p>
   </header>
+  {% set total_steps = state.progress.total or 0 %}
+  <div class="exam-progress-track" role="progressbar" aria-label="Examination progress"
+       aria-valuenow="{{ state.progress.step }}" aria-valuemin="0" aria-valuemax="{{ total_steps }}">
+    <span style="width: {{ ((state.progress.step / total_steps * 100) | round | int) if total_steps else 0 }}%"></span>
+  </div>
   <div class="examiner">
     <p class="examiner-label">AI examiner</p>
     <p class="status-pill" data-status>Ready</p>
@@ -14,13 +19,14 @@
       </figure>
     {% endif %}
     <p class="mic-state" data-mic-state>Microphone idle</p>
+    <p class="exam-error" data-exam-error hidden></p>
     <p class="timer" data-timer hidden>00:00</p>
   </div>
   {% if state.mode == 'practice' %}
     <p class="practice-note" data-practice-note></p>
   {% endif %}
   <div class="exam-controls">
-    <button type="button" class="btn btn-primary" data-mic>Hold to speak</button>
+    <button type="button" class="btn btn-primary" data-mic>Tap to speak</button>
     <button type="button" class="btn btn-ghost" data-repeat>Repeat question</button>
   </div>
   <p class="transcript-live" data-live-transcript></p>

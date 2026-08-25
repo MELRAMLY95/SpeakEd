@@ -237,3 +237,13 @@ class TestProviderSelection:
         }
         provider = create_provider(config)
         assert provider.base_url == "https://api.z.ai/api/paas/v4"  # default URL
+
+    def test_gemini_supports_audio_when_keyed(self):
+        gemini = GeminiProvider("test-key", "gemini-3.6-flash")
+        assert gemini.supports_audio() is True
+        zai = ZAIProvider("test-key", "glm-4", "https://api.z.ai/api/paas/v4")
+        assert zai.supports_audio() is False
+
+    def test_rule_provider_is_not_available_for_marking(self):
+        provider = RuleBasedProvider()
+        assert provider.is_available() is False

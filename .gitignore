@@ -13,3 +13,8 @@ uploads/*
 Thumbs.db
 
 .devin/
+
+# Local database backups may contain real user data
+backups/
+# Throwaway local PostgreSQL server used only for testing
+.pgtmp/

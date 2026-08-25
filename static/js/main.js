@@ -1,156 +1,201 @@
-document.addEventListener("click", (event) => {
-  const toggle = event.target.closest("[data-nav-toggle]");
-  if (!toggle) return;
-  document.querySelector(".nav")?.classList.toggle("open");
-});
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-// Ripple effect for buttons
-document.addEventListener("click", function(e) {
-  const button = e.target.closest(".btn");
-  if (!button) return;
+/* --------------------------------------------------------------------------
+   Mobile navigation
+   -------------------------------------------------------------------------- */
 
-  const ripple = document.createElement("span");
-  ripple.classList.add("ripple");
-  
-  const rect = button.getBoundingClientRect();
-  const size = Math.max(rect.width, rect.height);
-  const x = e.clientX - rect.left - size / 2;
-  const y = e.clientY - rect.top - size / 2;
-  
-  ripple.style.width = ripple.style.height = size + "px";
-  ripple.style.left = x + "px";
-  ripple.style.top = y + "px";
-  
-  button.appendChild(ripple);
-  
-  setTimeout(() => ripple.remove(), 600);
-});
+const navToggle = document.querySelector("[data-nav-toggle]");
+const nav = document.querySelector(".nav");
 
-// Scroll animations
-const observerOptions = {
-  threshold: 0.1,
-  rootMargin: "0px 0px -50px 0px"
-};
-
-const observer = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      entry.target.classList.add("animate-fade-in");
-      observer.unobserve(entry.target);
-    }
-  });
-}, observerOptions);
-
-// Observe elements for scroll animation
-document.querySelectorAll(".features article, .stats-grid article, .card").forEach(el => {
-  el.style.opacity = "0";
-  observer.observe(el);
-});
-
-// Smooth scroll for anchor links
-document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-  anchor.addEventListener("click", function(e) {
-    e.preventDefault();
-    const target = document.querySelector(this.getAttribute("href"));
-    if (target) {
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-  });
-});
-
-// Header scroll effect
-let lastScroll = 0;
-const header = document.querySelector(".site-header");
-
-window.addEventListener("scroll", () => {
-  const currentScroll = window.pageYOffset;
-  
-  if (currentScroll <= 0) {
-    header.style.boxShadow = "";
-  } else if (currentScroll > lastScroll) {
-    header.style.boxShadow = "0 4px 20px rgba(18, 35, 58, 0.1)";
-  }
-  
-  lastScroll = currentScroll;
-});
-
-// Form input animations
-document.querySelectorAll("input, textarea, select").forEach(input => {
-  input.addEventListener("focus", function() {
-    this.parentElement.classList.add("focused");
-  });
-  
-  input.addEventListener("blur", function() {
-    this.parentElement.classList.remove("focused");
-  });
-});
-
-// Loading states for form submit buttons
-document.querySelectorAll("form").forEach(form => {
-  form.addEventListener("submit", function() {
-    const submitBtn = this.querySelector('.btn[type="submit"]');
-    if (submitBtn) {
-      submitBtn.innerHTML = '<span class="spinner"></span>';
-      submitBtn.disabled = true;
-    }
-  });
-});
-
-// Counter animation for stats
-function animateCounter(element, target, duration = 2000) {
-  let start = 0;
-  const increment = target / (duration / 16);
-  
-  const updateCounter = () => {
-    start += increment;
-    if (start < target) {
-      element.textContent = Math.floor(start);
-      requestAnimationFrame(updateCounter);
-    } else {
-      element.textContent = target;
-    }
-  };
-  
-  updateCounter();
+function setNavOpen(open) {
+  if (!nav || !navToggle) return;
+  nav.classList.toggle("open", open);
+  navToggle.setAttribute("aria-expanded", open ? "true" : "false");
 }
 
-// Initialize counters when they come into view
-const counterObserver = new IntersectionObserver((entries) => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const target = parseInt(entry.target.textContent);
-      if (!isNaN(target)) {
-        animateCounter(entry.target, target);
-      }
-      counterObserver.unobserve(entry.target);
+if (navToggle && nav) {
+  navToggle.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setNavOpen(!nav.classList.contains("open"));
+  });
+
+  nav.addEventListener("click", (event) => {
+    if (event.target.closest("a")) setNavOpen(false);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!nav.classList.contains("open")) return;
+    if (nav.contains(event.target) || navToggle.contains(event.target)) return;
+    setNavOpen(false);
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && nav.classList.contains("open")) {
+      setNavOpen(false);
+      navToggle.focus();
     }
   });
-}, { threshold: 0.5 });
+}
 
-document.querySelectorAll(".stat").forEach(stat => {
-  counterObserver.observe(stat);
+/* --------------------------------------------------------------------------
+   Button ripple
+   -------------------------------------------------------------------------- */
+
+document.addEventListener("click", (event) => {
+  if (prefersReducedMotion.matches) return;
+  const button = event.target.closest(".btn");
+  if (!button || button.disabled) return;
+
+  const rect = button.getBoundingClientRect();
+  const size = Math.max(rect.width, rect.height);
+  const ripple = document.createElement("span");
+  ripple.className = "ripple";
+  ripple.style.width = ripple.style.height = `${size}px`;
+  ripple.style.left = `${event.clientX - rect.left - size / 2}px`;
+  ripple.style.top = `${event.clientY - rect.top - size / 2}px`;
+
+  button.appendChild(ripple);
+  setTimeout(() => ripple.remove(), 620);
 });
 
-// Toast notification system
+/* --------------------------------------------------------------------------
+   Reveal on scroll
+   -------------------------------------------------------------------------- */
+
+const revealTargets = document.querySelectorAll(
+  ".features article, .stats-grid article, .card, [data-reveal]"
+);
+
+if (!prefersReducedMotion.matches && "IntersectionObserver" in window) {
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.remove("will-reveal");
+        entry.target.classList.add("animate-fade-in");
+        revealObserver.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.08, rootMargin: "0px 0px -40px 0px" }
+  );
+
+  revealTargets.forEach((el, index) => {
+    // The hidden state lives in CSS so nothing is stranded invisible if the
+    // observer never fires for an element.
+    el.classList.add("will-reveal");
+    el.style.animationDelay = `${Math.min(index, 5) * 55}ms`;
+    revealObserver.observe(el);
+  });
+}
+
+/* --------------------------------------------------------------------------
+   Smooth anchor scrolling
+   -------------------------------------------------------------------------- */
+
+document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+  anchor.addEventListener("click", function (event) {
+    const href = this.getAttribute("href");
+    if (!href || href === "#") return;
+    const target = document.querySelector(href);
+    if (!target) return;
+    event.preventDefault();
+    target.scrollIntoView({
+      behavior: prefersReducedMotion.matches ? "auto" : "smooth",
+      block: "start",
+    });
+  });
+});
+
+/* --------------------------------------------------------------------------
+   Header elevation on scroll
+   -------------------------------------------------------------------------- */
+
+const header = document.querySelector(".site-header");
+
+if (header) {
+  const syncHeader = () => {
+    header.classList.toggle("scrolled", window.scrollY > 8);
+  };
+  syncHeader();
+  window.addEventListener("scroll", syncHeader, { passive: true });
+}
+
+/* --------------------------------------------------------------------------
+   Field focus state
+   -------------------------------------------------------------------------- */
+
+document.querySelectorAll("input, textarea, select").forEach((field) => {
+  field.addEventListener("focus", () => field.parentElement?.classList.add("focused"));
+  field.addEventListener("blur", () => field.parentElement?.classList.remove("focused"));
+});
+
+/* --------------------------------------------------------------------------
+   Submit button loading state
+   -------------------------------------------------------------------------- */
+
+document.querySelectorAll("form").forEach((form) => {
+  form.addEventListener("submit", function () {
+    const submitBtn = this.querySelector('.btn[type="submit"]');
+    if (!submitBtn || submitBtn.disabled) return;
+    // Lock the current size so the button does not collapse around the spinner.
+    submitBtn.style.minWidth = `${submitBtn.offsetWidth}px`;
+    submitBtn.setAttribute("aria-busy", "true");
+    submitBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span class="sr-only">Working…</span>';
+    submitBtn.disabled = true;
+  });
+});
+
+/* --------------------------------------------------------------------------
+   Stat counters
+   -------------------------------------------------------------------------- */
+
+function animateCounter(element, target, duration = 1200) {
+  const start = performance.now();
+  const step = (now) => {
+    const progress = Math.min((now - start) / duration, 1);
+    // Ease-out so the number settles rather than stopping abruptly.
+    const eased = 1 - Math.pow(1 - progress, 3);
+    element.textContent = Math.round(target * eased);
+    if (progress < 1) requestAnimationFrame(step);
+    else element.textContent = target;
+  };
+  requestAnimationFrame(step);
+}
+
+if (!prefersReducedMotion.matches && "IntersectionObserver" in window) {
+  const counterObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        const raw = entry.target.textContent.trim();
+        // Only animate plain whole numbers; "12/15" or "—" must stay as written.
+        if (/^\d+$/.test(raw)) animateCounter(entry.target, parseInt(raw, 10));
+        counterObserver.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.5 }
+  );
+
+  document.querySelectorAll(".stat").forEach((stat) => counterObserver.observe(stat));
+}
+
+/* --------------------------------------------------------------------------
+   Toasts
+   -------------------------------------------------------------------------- */
+
 function showToast(message, type = "info") {
   const toast = document.createElement("div");
   toast.className = `flash flash-${type} animate-slide-in`;
+  toast.setAttribute("role", "status");
   toast.textContent = message;
-  toast.style.position = "fixed";
-  toast.style.top = "20px";
-  toast.style.right = "20px";
-  toast.style.zIndex = "1000";
-  toast.style.maxWidth = "300px";
-  
   document.body.appendChild(toast);
-  
+
   setTimeout(() => {
+    toast.style.transition = "opacity 300ms ease, transform 300ms ease";
     toast.style.opacity = "0";
-    toast.style.transform = "translateX(100px)";
-    toast.style.transition = "all 0.3s ease";
-    setTimeout(() => toast.remove(), 300);
-  }, 3000);
+    toast.style.transform = "translateY(12px)";
+    setTimeout(() => toast.remove(), 320);
+  }, 3600);
 }
 
-// Make showToast available globally
 window.showToast = showToast;

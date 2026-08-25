@@ -15,10 +15,26 @@
 </section>
 <section class="wrap">
   <div class="practice-grid">
-    <a href="{{ url_for('practice.roleplay') }}">Role play practice</a>
-    <a href="{{ url_for('practice.topic_talk') }}">Topic talk practice</a>
-    <a href="{{ url_for('practice.picture') }}">Picture-based conversation</a>
-    <a href="{{ url_for('exam.intro') }}">Full exam</a>
+    <a href="{{ url_for('practice.roleplay') }}">
+      <span class="practice-tag">Task 1 · 10 marks</span>
+      <span class="practice-title">Role play practice</span>
+      <p class="description">Respond in role to the examiner, including the unseen prompt and the question you must ask.</p>
+    </a>
+    <a href="{{ url_for('practice.topic_talk') }}">
+      <span class="practice-tag">Task 2 · 20 marks</span>
+      <span class="practice-title">Topic talk practice</span>
+      <p class="description">Present your chosen Global Issues topic, then answer the examiner's follow-up questions.</p>
+    </a>
+    <a href="{{ url_for('practice.picture') }}">
+      <span class="practice-tag">Task 3 · 20 marks</span>
+      <span class="practice-title">Picture-based conversation</span>
+      <p class="description">Describe a picture stimulus and develop your ideas through unseen follow-up questions.</p>
+    </a>
+    <a href="{{ url_for('exam.intro') }}">
+      <span class="practice-tag">All tasks · 50 marks</span>
+      <span class="practice-title">Full exam</span>
+      <p class="description">Sit the complete examination end to end: preparation, warm-up, and all three marked tasks.</p>
+    </a>
   </div>
 </section>
 {% endblock %}

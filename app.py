@@ -1,7 +1,9 @@
+import logging
+
 from flask import Flask, g, render_template
 
-from config import Config
-from database.database import close_db, init_db, query_one
+from config import Config, validate_runtime_config
+from database.database import close_db, engine_kind, init_db, query_one
 from routes.auth import auth_bp
 from routes.dashboard import dashboard_bp
 from routes.evaluation import evaluation_bp
@@ -11,9 +13,18 @@ from routes.practice import practice_bp
 from routes.progress import progress_bp
 
 
+logger = logging.getLogger(__name__)
+
+
 def create_app(config_object=None):
     app = Flask(__name__)
     app.config.from_object(config_object or Config)
+    validate_runtime_config(app.config)
+    logger.info(
+        "SpeakEd starting with %s database (production=%s)",
+        engine_kind(app.config.get("DATABASE_URL")),
+        bool(app.config.get("IS_PRODUCTION")),
+    )
     app.teardown_appcontext(close_db)
 
     app.register_blueprint(auth_bp)

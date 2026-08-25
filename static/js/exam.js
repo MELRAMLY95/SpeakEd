@@ -11,13 +11,26 @@
   const micState = room.querySelector("[data-mic-state]");
   const noteEl = room.querySelector("[data-practice-note]");
   const timerEl = room.querySelector("[data-timer]");
+  const errorEl = room.querySelector("[data-exam-error]");
   let lastSpoken = "";
   let listening = false;
+  let submitting = false;
   let autoStartMic = true;
 
   function setStatus(label) {
     statusEl.textContent = label;
     micState.textContent = label;
+  }
+
+  function setError(message) {
+    if (!errorEl) return;
+    if (!message) {
+      errorEl.hidden = true;
+      errorEl.textContent = "";
+      return;
+    }
+    errorEl.hidden = false;
+    errorEl.textContent = message;
   }
 
   function speak(text) {
@@ -38,7 +51,6 @@
       questionEl.textContent = state.prompt.display || state.prompt.spoken;
       if (speakNow !== false) {
         await speak(state.prompt.spoken || state.prompt.display);
-        // Auto-start microphone after AI speaks
         if (autoStartMic && !listening) {
           setTimeout(() => startListen(), 500);
         }
@@ -56,28 +68,62 @@
   }
 
   async function finishTurn() {
-    if (window.SpeakEdRecorder.isSpeaking()) return;
+    if (window.SpeakEdRecorder.isSpeaking() || submitting) return;
     listening = false;
+    submitting = true;
     micEl.textContent = "🎤 Tap to speak";
     micEl.classList.remove("active");
     setStatus("⏳ Processing");
-    const captured = window.SpeakEdRecorder.stop();
-    let transcript = captured.transcript;
-    if (!transcript) {
-      transcript = window.prompt("Speech recognition is not available in this browser. Type what you said:") || "";
+    setError("");
+    let captured;
+    try {
+      captured = await window.SpeakEdRecorder.stop();
+    } catch (err) {
+      submitting = false;
+      setError("Recording could not be stopped. Please try again.");
+      setStatus("🎤 Ready");
+      return;
     }
+    const transcript = captured.transcript || "";
     liveEl.textContent = transcript;
-    const response = await fetch(`/exam/${attemptId}/turn`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ transcript, metrics: captured.metrics }),
-    });
-    const state = await response.json();
+    if (!transcript && !captured.blob) {
+      submitting = false;
+      setError("No speech was captured. Check the microphone and try again.");
+      setStatus("🎤 Ready");
+      return;
+    }
+    const form = new FormData();
+    form.append("transcript", transcript);
+    form.append("metrics", JSON.stringify(captured.metrics || {}));
+    if (captured.blob) {
+      const ext = (captured.mimeType || "audio/webm").includes("mp4") ? "m4a" : "webm";
+      form.append("audio", captured.blob, `turn.${ext}`);
+    }
+    let state;
+    try {
+      const response = await fetch(`/exam/${attemptId}/turn`, {
+        method: "POST",
+        body: form,
+      });
+      state = await response.json();
+      if (!response.ok) {
+        submitting = false;
+        setError(state.error || "The examiner could not process that answer. Please retry.");
+        setStatus("🎤 Ready");
+        return;
+      }
+    } catch (err) {
+      submitting = false;
+      setError("Network error while sending your answer. Please retry.");
+      setStatus("🎤 Ready");
+      return;
+    }
     if (state.practice_note && noteEl) noteEl.textContent = state.practice_note;
     if (state.redirect) {
       window.location.href = state.redirect;
       return;
     }
+    submitting = false;
     if (state.stage && state.stage !== room.dataset.stage) {
       window.location.reload();
       return;
@@ -85,7 +131,6 @@
     if (state.prompt) {
       questionEl.textContent = state.prompt.display;
       await speak(state.prompt.spoken || state.prompt.display);
-      // Auto-start microphone for next question
       if (autoStartMic) {
         setTimeout(() => startListen(), 500);
       }
@@ -94,17 +139,28 @@
   }
 
   async function startListen() {
-    if (window.SpeakEdRecorder.isSpeaking() || listening) return;
+    if (window.SpeakEdRecorder.isSpeaking() || listening || submitting) return;
+    setError("");
     listening = true;
     micEl.textContent = "🛑 Stop recording";
     micEl.classList.add("active");
     setStatus("🎙️ Listening...");
-    await window.SpeakEdRecorder.start((text) => {
-      liveEl.textContent = text;
-    });
+    try {
+      await window.SpeakEdRecorder.start((text) => {
+        liveEl.textContent = text;
+      });
+    } catch (err) {
+      listening = false;
+      micEl.textContent = "🎤 Tap to speak";
+      micEl.classList.remove("active");
+      const denied = err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError");
+      setError(denied
+        ? "Microphone permission was denied. Allow the microphone and try again."
+        : "The microphone could not be started. Check your browser settings.");
+      setStatus("🎤 Ready");
+    }
   }
 
-  // Toggle microphone instead of hold
   micEl.addEventListener("click", () => {
     if (listening) {
       finishTurn();
@@ -118,7 +174,6 @@
     speak(lastSpoken);
   });
 
-  // Set up speaking callback to update UI
   window.SpeakEdRecorder.setSpeakingCallback((isSpeaking) => {
     if (isSpeaking) {
       micEl.disabled = true;
@@ -129,14 +184,11 @@
     }
   });
 
-  // Load voices for speech synthesis
   if (window.speechSynthesis) {
     window.speechSynthesis.onvoiceschanged = () => {
-      const voices = window.speechSynthesis.getVoices();
-      console.log("Available voices:", voices.length);
+      window.speechSynthesis.getVoices();
     };
   }
 
-  // Start the exam with auto-mic
   loadState(true);
 })();

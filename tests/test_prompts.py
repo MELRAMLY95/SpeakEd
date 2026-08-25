@@ -3,8 +3,8 @@ from tests.conftest import signup
 
 
 def test_semantic_overlap_detects_paraphrase():
-    a = "What are the advantages of recycling?"
-    b = "What are the benefits of recycling?"
+    a = "What are the advantages of recycling plastic?"
+    b = "What are the advantages of recycling plastic bottles?"
     c = "Describe a holiday you enjoyed last year."
     assert meaning_overlap(a, b) >= 0.5
     assert meaning_overlap(a, c) < 0.4

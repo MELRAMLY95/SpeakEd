@@ -1,79 +1,155 @@
-.practice-grid { 
-  display: grid; 
-  grid-template-columns: repeat(2, 1fr); 
-  gap: 24px; 
-  margin-top: 40px; 
-  max-width: 900px;
+/* ==========================================================================
+   Practice hub
+   ========================================================================== */
+
+.practice-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--s-4);
+  margin-top: var(--s-6);
 }
 
-.practice-grid a { 
-  display: block; 
-  background: #fff; 
-  border: 2px solid var(--line); 
-  border-radius: 20px; 
-  padding: 40px 32px; 
-  text-decoration: none; 
-  color: var(--ink); 
-  font-weight: 700; 
-  font-size: 1.3rem;
-  text-align: center;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+.practice-grid a {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-2);
   overflow: hidden;
+  padding: var(--s-6);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  text-decoration: none;
+  color: var(--ink);
+  transition: transform var(--dur-slow) var(--ease-out), box-shadow var(--dur-slow) var(--ease),
+    border-color var(--dur) var(--ease);
 }
 
 .practice-grid a::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 6px;
+  inset: 0 0 auto;
+  height: 3px;
   background: var(--gradient-primary);
   transform: scaleX(0);
-  transition: transform 0.4s ease;
+  transform-origin: left;
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.practice-grid a:nth-child(2)::before { background: var(--gradient-warm); }
+.practice-grid a:nth-child(3)::before { background: var(--gradient-accent); }
+.practice-grid a:nth-child(4)::before { background: var(--gradient-purple); }
+.practice-grid a:hover::before { transform: scaleX(1); }
+
+.practice-grid a:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
 }
 
-.practice-grid a:nth-child(2)::before {
-  background: var(--gradient-gold);
+/* Arrow slides in on hover to signal the card is a link. */
+.practice-grid a::after {
+  content: "→";
+  position: absolute;
+  top: var(--s-5);
+  right: var(--s-5);
+  color: var(--brand);
+  font-size: var(--text-lg);
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease-out);
 }
+.practice-grid a:hover::after { opacity: 1; transform: none; }
 
-.practice-grid a:nth-child(3)::before {
-  background: var(--gradient-purple);
+.practice-grid .practice-tag {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
 }
-
-.practice-grid a:nth-child(4)::before {
-  background: var(--gradient-blue);
+.practice-grid .practice-title {
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
-
-.practice-grid a:hover::before {
-  transform: scaleX(1);
-}
-
-.practice-grid a:hover { 
-  transform: translateY(-8px) scale(1.02); 
-  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.2);
-  border-color: var(--wine);
-}
-
-.practice-grid h1 {
-  margin: 0 0 8px 0;
-  font-size: 1.5rem;
-  color: var(--ink);
-}
-
 .practice-grid .description {
   margin: 0;
-  font-size: 0.95rem;
   color: var(--muted);
-  font-weight: 400;
+  font-size: var(--text-sm);
+  line-height: 1.6;
 }
 
-@media (max-width: 700px) { 
-  .practice-grid { 
-    grid-template-columns: 1fr; 
-  }
-  .practice-grid a {
-    padding: 32px 24px;
-  }
+/* ==========================================================================
+   Section setup forms (topic talk, role play)
+   ========================================================================== */
+
+.practice-panel {
+  max-width: 720px;
+  margin: var(--s-6) 0 var(--s-8);
+  padding: var(--s-6);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.practice-panel label { font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
+.practice-panel .btn { justify-self: start; margin-top: var(--s-2); }
+
+/* ==========================================================================
+   Picture chooser
+   ========================================================================== */
+
+.refresh-section { margin: var(--s-5) 0; }
+
+.picture-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+  gap: var(--s-5);
+  margin: var(--s-5) 0 var(--s-8);
+}
+
+.picture-card {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+.picture-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--border-strong);
+}
+
+.picture-preview {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  background: var(--surface-2);
+  transition: transform var(--dur-slow) var(--ease-out);
+}
+.picture-card:hover .picture-preview { transform: scale(1.03); }
+
+.picture-info { display: grid; gap: var(--s-2); padding: var(--s-5); }
+.picture-info h3 {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.picture-info p { margin: 0; color: var(--muted); font-size: var(--text-sm); }
+.picture-info form { margin: var(--s-3) 0 0; }
+.picture-info .btn { width: 100%; }
+
+@media (max-width: 720px) {
+  .practice-grid { grid-template-columns: 1fr; }
+  .practice-grid a { padding: var(--s-5); }
+  .picture-cards-grid { grid-template-columns: 1fr; }
 }

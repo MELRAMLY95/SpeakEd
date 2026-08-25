@@ -1,3 +1,75 @@
-.eval-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.eval-grid article { background: #fff; border: 1px solid var(--line); border-radius: 14px; padding: 18px; }
-@media (max-width: 800px) { .eval-grid { grid-template-columns: 1fr; } }
+/* ==========================================================================
+   Evaluation corner
+   ========================================================================== */
+
+.eval { padding: var(--s-5) 0 var(--s-8); }
+.eval > h1 { margin-bottom: var(--s-5); }
+.eval > h2 {
+  margin: var(--s-7) 0 var(--s-4);
+  font-family: var(--font-sans);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.eval-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--s-4);
+  margin-top: var(--s-5);
+}
+
+.eval-grid article {
+  padding: var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease);
+}
+.eval-grid article:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+
+.eval-grid h2 {
+  margin-top: 0;
+  font-family: var(--font-sans);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+.eval-grid h3 {
+  margin: var(--s-5) 0 var(--s-2);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.eval-grid ul { margin: 0; padding-left: var(--s-5); display: grid; gap: var(--s-2); }
+.eval-grid li { color: var(--ink-soft); font-size: var(--text-sm); line-height: 1.6; }
+.eval-grid p { color: var(--ink-soft); font-size: var(--text-sm); }
+.eval-grid p strong { color: var(--ink); }
+
+/* Self-evaluation form: the 1–5 ratings read better as a compact grid. */
+.eval form.stack { max-width: 720px; }
+.eval form.stack label { font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
+.eval form.stack input[type="number"] { max-width: 120px; }
+.eval form.stack .btn { justify-self: start; margin-top: var(--s-2); }
+
+.eval > ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--s-2);
+}
+.eval > ul > li {
+  padding: var(--s-4);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 800px) {
+  .eval-grid { grid-template-columns: 1fr; }
+}

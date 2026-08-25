@@ -2,25 +2,52 @@
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/progress.css') }}">{% endblock %}
 {% block title %}Attempt {{ attempt.id }}{% endblock %}
 {% block content %}
-<article class="wrap">
-  <h1>{{ attempt.exam_type }} · {{ attempt.mode }}</h1>
-  <p>Date: {{ attempt.started_at[:16].replace('T', ' ') }} · Score: {{ attempt.total_score if attempt.total_score is not none else '—' }}</p>
-  {% if marking %}
-    <p>Role play {{ marking.roleplay.score }}/10 · Topic {{ marking.topic_talk.score }}/20 · Picture {{ marking.picture.score }}/20</p>
-  {% endif %}
+<article class="wrap attempt-detail">
+  <p class="eyebrow">Attempt review</p>
+  <h1>{{ attempt.exam_type.replace('_', ' ') }} · {{ attempt.mode }}</h1>
+  <ul class="attempt-meta">
+    <li>{{ attempt.started_at[:16].replace('T', ' ') }}</li>
+    <li>Score <strong>{{ attempt.total_score if attempt.total_score is not none else '—' }}</strong></li>
+    {% if marking %}
+      <li>Role play <strong>{{ marking.roleplay.score }}/10</strong></li>
+      <li>Topic talk <strong>{{ marking.topic_talk.score }}/20</strong></li>
+      <li>Picture <strong>{{ marking.picture.score }}/20</strong></li>
+    {% endif %}
+  </ul>
+
   {% if feedback %}
-    <h2>Feedback</h2>
-    <p>{{ feedback.examiner_comments }}</p>
+    <section class="attempt-panel">
+      <h2>Examiner feedback</h2>
+      <p>{{ feedback.examiner_comments }}</p>
+    </section>
   {% endif %}
+
   {% if self_eval %}
-    <h2>Self-evaluation</h2>
-    <p>Confidence {{ self_eval.confidence }}/5 · Fluency {{ self_eval.fluency }}/5 · Difficulty {{ self_eval.difficulty }}/5 · Satisfaction {{ self_eval.satisfaction }}/5</p>
-    <p>{{ self_eval.struggled_with }}</p>
-    <p>{{ self_eval.improve_next }}</p>
+    <section class="attempt-panel">
+      <h2>Your self-evaluation</h2>
+      <ul class="attempt-meta">
+        <li>Confidence <strong>{{ self_eval.confidence }}/5</strong></li>
+        <li>Fluency <strong>{{ self_eval.fluency }}/5</strong></li>
+        <li>Difficulty <strong>{{ self_eval.difficulty }}/5</strong></li>
+        <li>Satisfaction <strong>{{ self_eval.satisfaction }}/5</strong></li>
+      </ul>
+      <p>{{ self_eval.struggled_with }}</p>
+      <p>{{ self_eval.improve_next }}</p>
+    </section>
   {% endif %}
+
   <h2>Transcript</h2>
-  {% for turn in transcripts %}
-    <p><strong>{{ turn.speaker }}</strong> ({{ turn.stage }}): {{ turn.text }}</p>
-  {% endfor %}
+  {% if transcripts %}
+    <ul class="transcript">
+      {% for turn in transcripts %}
+        <li class="turn {{ 'turn-examiner' if turn.speaker == 'examiner' else 'turn-student' }}">
+          <span class="turn-speaker">{{ turn.speaker }} · {{ turn.stage.replace('_', ' ') }}</span>
+          <p>{{ turn.text }}</p>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="history-empty">No transcript was recorded for this attempt.</p>
+  {% endif %}
 </article>
 {% endblock %}

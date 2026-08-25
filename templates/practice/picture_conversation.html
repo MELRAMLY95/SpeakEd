@@ -14,7 +14,7 @@
 </section>
 <section class="wrap">
   <div class="refresh-section">
-    <button class="btn btn-ghost" onclick="refreshImages()">🔄 Get new random images</button>
+    <button class="btn btn-ghost" type="button" onclick="refreshImages(this)">Get new random images</button>
   </div>
   
   <div class="picture-cards-grid">
@@ -36,88 +36,27 @@
 </section>
 
 <script>
-async function refreshImages() {
-  const btn = event.target;
+async function refreshImages(btn) {
+  const original = btn.textContent;
   btn.disabled = true;
-  btn.textContent = 'Loading...';
-  
+  btn.textContent = 'Loading…';
+
   try {
     const response = await fetch('/practice/refresh-images', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      headers: { 'Content-Type': 'application/json' }
     });
     const data = await response.json();
-    
     if (data.success) {
-      // Reload page to show new images
       window.location.reload();
+      return;
     }
+    throw new Error('Refresh was not successful');
   } catch (error) {
     console.error('Failed to refresh images:', error);
     btn.disabled = false;
-    btn.textContent = '🔄 Get new random images';
+    btn.textContent = original;
   }
 }
 </script>
-
-<style>
-.refresh-section {
-  margin: 24px 0;
-}
-
-.picture-cards-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-  gap: 32px;
-  margin-top: 32px;
-}
-
-.picture-card {
-  background: #fff;
-  border: 2px solid var(--line);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: var(--shadow);
-  transition: all 0.3s ease;
-}
-
-.picture-card:hover {
-  transform: translateY(-8px);
-  box-shadow: var(--shadow-lg);
-}
-
-.picture-preview {
-  width: 100%;
-  height: 300px;
-  object-fit: cover;
-  aspect-ratio: 16/9;
-}
-
-.picture-info {
-  padding: 24px;
-}
-
-.picture-info h3 {
-  margin: 0 0 8px 0;
-  color: var(--wine);
-  font-size: 1.3rem;
-}
-
-.picture-info p {
-  margin: 0 0 16px 0;
-  color: var(--muted);
-}
-
-.picture-info form {
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .picture-cards-grid {
-    grid-template-columns: 1fr;
-  }
-}
-</style>
 {% endblock %}

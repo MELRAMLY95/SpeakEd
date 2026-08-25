@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SpeakEd{% endblock %} · 4XES2 Speaking</title>
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#fafafb" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#09090d" media="(prefers-color-scheme: dark)">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,520;9..144,640&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   {% block extra_css %}{% endblock %}
 </head>
@@ -15,10 +18,13 @@
   <header class="site-header">
     <div class="wrap header-inner">
       <a class="brand" href="{{ url_for('home') }}">
-        <img src="{{ url_for('static', filename='images/SpeakEd.svg.png') }}" alt="SpeakEd logo" width="56" height="56">
+        <img src="{{ url_for('static', filename='images/SpeakEd.svg.png') }}" alt="SpeakEd logo" width="40" height="40">
         <span>SpeakEd</span>
       </a>
-      <nav class="nav" aria-label="Main">
+      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Toggle navigation">
+        <span></span>
+      </button>
+      <nav class="nav" id="site-nav" aria-label="Main">
         {% if current_user %}
           <a href="{{ url_for('dashboard.home') }}">Dashboard</a>
           <a href="{{ url_for('practice.home') }}">Practice</a>

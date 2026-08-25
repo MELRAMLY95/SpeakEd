@@ -55,14 +55,66 @@ class AIProvider(ABC):
         max_tokens: int = 400,
         temperature: float = 0.2,
     ) -> dict:
-        raw = self.generate_text(
-            prompt,
-            max_tokens=max_tokens,
-            temperature=temperature,
-            json_mode=True,
-            system=system,
-        )
-        return parse_json_object(raw)
+        last_error: Exception | None = None
+        for _ in range(2):
+            try:
+                raw = self.generate_text(
+                    prompt,
+                    max_tokens=max_tokens,
+                    temperature=temperature,
+                    json_mode=True,
+                    system=system,
+                )
+                return parse_json_object(raw)
+            except Exception as exc:
+                last_error = exc
+        raise ValueError(f"AI JSON was invalid after retry: {last_error}")
+
+    def supports_audio(self) -> bool:
+        return False
+
+    def generate_with_audio(
+        self,
+        prompt: str,
+        audio_bytes: bytes,
+        mime_type: str,
+        *,
+        system: str = "",
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 800,
+    ) -> str:
+        raise RuntimeError(f"{self.name} does not accept audio input")
+
+    def generate_json_with_audio(
+        self,
+        prompt: str,
+        audio_bytes: bytes,
+        mime_type: str,
+        *,
+        system: str = "",
+        max_tokens: int = 400,
+        temperature: float = 0.2,
+    ) -> dict:
+        last_error: Exception | None = None
+        for _ in range(2):
+            try:
+                raw = self.generate_with_audio(
+                    prompt,
+                    audio_bytes,
+                    mime_type,
+                    system=system,
+                    json_mode=True,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                return parse_json_object(raw)
+            except Exception as exc:
+                last_error = exc
+        raise ValueError(f"AI JSON was invalid after retry: {last_error}")
+
+    def transcribe_audio(self, audio_bytes: bytes, mime_type: str) -> str:
+        raise RuntimeError(f"{self.name} cannot transcribe audio")
 
     def is_available(self) -> bool:
         return True

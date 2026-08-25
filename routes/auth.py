@@ -1,5 +1,6 @@
 import hashlib
 import hmac
+import logging
 import re
 import secrets
 from datetime import datetime, timedelta, timezone
@@ -10,6 +11,8 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.database import execute, query_one
 from routes import auth_bp
+
+logger = logging.getLogger(__name__)
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
@@ -78,7 +81,14 @@ def login():
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
         user = query_one("SELECT * FROM users WHERE email = ?", (email,))
-        if user is None or not check_password_hash(user["password_hash"], password):
+        if user is None:
+            # Same message either way so the form never reveals which emails
+            # exist; the reason is recorded server-side only.
+            logger.warning("Login failed: no account found for %s", email)
+            flash("Incorrect email or password.", "error")
+            return render_template("auth/login.html")
+        if not check_password_hash(user["password_hash"], password):
+            logger.warning("Login failed: password mismatch for user id %s", user["id"])
             flash("Incorrect email or password.", "error")
             return render_template("auth/login.html")
         session.clear()

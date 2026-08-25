@@ -2,34 +2,72 @@
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/exam.css') }}">{% endblock %}
 {% block title %}Practice result{% endblock %}
 {% block content %}
+{% macro score_card(label, value, out_of, is_total=false) %}
+  <div class="score-card{% if is_total %} score-card-total{% endif %}">
+    <p class="score-label">{{ label }}</p>
+    <p class="score-value">{{ value if value is not none else '—' }}<span>/{{ out_of }}</span></p>
+    <div class="score-bar">
+      <span style="width: {{ ((value / out_of * 100) | round | int) if value is not none and out_of else 0 }}%"></span>
+    </div>
+  </div>
+{% endmacro %}
 <article class="wrap results">
+  <p class="eyebrow">Practice result</p>
   <h1>4XES2 speaking practice result</h1>
   <p class="notice">{{ disclaimer }}</p>
-  {% if attempt.exam_type == 'full' or attempt.exam_type == 'roleplay' %}
-    <p>Role play: <strong>{{ attempt.roleplay_score if attempt.roleplay_score is not none else '—' }}/10</strong></p>
+
+  {% if attempt.status == 'marking_unavailable' %}
+    <div class="result-block result-block-warn">
+      <h2>Marking unavailable</h2>
+      <p>The AI examiner could not complete marking. No score was recorded.</p>
+      {% if state and state.marking_error %}<p>{{ state.marking_error }}</p>{% endif %}
+      {% if marking and marking.error %}<p>{{ marking.error }}</p>{% endif %}
+      <form method="post" action="{{ url_for('exam.retry_marking', attempt_id=attempt.id) }}">
+        <button class="btn btn-primary btn-sm" type="submit">Retry marking</button>
+      </form>
+    </div>
   {% endif %}
-  {% if attempt.exam_type == 'full' or attempt.exam_type == 'topic_talk' %}
-    <p>Topic talk: <strong>{{ attempt.topic_talk_score if attempt.topic_talk_score is not none else '—' }}/20</strong></p>
-  {% endif %}
-  {% if attempt.exam_type == 'full' or attempt.exam_type == 'picture' %}
-    <p>Picture-based conversation: <strong>{{ attempt.picture_score if attempt.picture_score is not none else '—' }}/20</strong></p>
-  {% endif %}
-  <p class="total">Total: <strong>{{ attempt.total_score if attempt.total_score is not none else '—' }}{% if attempt.exam_type == 'full' %}/50{% endif %}</strong></p>
-  <h2>Strongest area</h2>
-  <p>{{ attempt.strongest_area }}</p>
-  <h2>Weakest area</h2>
-  <p>{{ attempt.weakest_area }}</p>
+
+  <div class="score-grid">
+    {% if attempt.exam_type == 'full' or attempt.exam_type == 'roleplay' %}
+      {{ score_card('Role play', attempt.roleplay_score, 10) }}
+    {% endif %}
+    {% if attempt.exam_type == 'full' or attempt.exam_type == 'topic_talk' %}
+      {{ score_card('Topic talk', attempt.topic_talk_score, 20) }}
+    {% endif %}
+    {% if attempt.exam_type == 'full' or attempt.exam_type == 'picture' %}
+      {{ score_card('Picture conversation', attempt.picture_score, 20) }}
+    {% endif %}
+    {% if attempt.exam_type == 'full' %}
+      {{ score_card('Total', attempt.total_score, 50, true) }}
+    {% endif %}
+  </div>
+
+  <div class="results-split">
+    <div class="result-block result-block-ok">
+      <h2>Strongest area</h2>
+      <p>{{ attempt.strongest_area }}</p>
+    </div>
+    <div class="result-block result-block-warn">
+      <h2>Weakest area</h2>
+      <p>{{ attempt.weakest_area }}</p>
+    </div>
+  </div>
+
   {% if feedback %}
-    <h2>Examiner feedback</h2>
-    <ul>{% for item in feedback.strengths %}<li>{{ item }}</li>{% endfor %}</ul>
-    <ul>{% for item in feedback.weaknesses %}<li>{{ item }}</li>{% endfor %}</ul>
+    <h2>What went well</h2>
+    <ul class="feedback-list feedback-list-ok">{% for item in feedback.strengths %}<li>{{ item }}</li>{% endfor %}</ul>
+    <h2>What cost you marks</h2>
+    <ul class="feedback-list feedback-list-warn">{% for item in feedback.weaknesses %}<li>{{ item }}</li>{% endfor %}</ul>
     <h2>Recommended next step</h2>
-    <ul>{% for item in feedback.recommendations %}<li>{{ item }}</li>{% endfor %}</ul>
+    <ul class="feedback-list">{% for item in feedback.recommendations %}<li>{{ item }}</li>{% endfor %}</ul>
+    <h2>Examiner comments</h2>
     <pre class="comments">{{ feedback.examiner_comments }}</pre>
   {% endif %}
-  <p>
+
+  <div class="results-actions">
     <a class="btn btn-primary" href="{{ url_for('evaluation.self_eval', attempt_id=attempt.id) }}">Complete self-evaluation</a>
     <a class="btn btn-ghost" href="{{ url_for('progress.attempt', attempt_id=attempt.id) }}">Review transcript</a>
-  </p>
+  </div>
 </article>
 {% endblock %}

@@ -2,7 +2,7 @@ import json
 from datetime import datetime, timezone
 
 from ai.prompts import PromptBank
-from ai.speech import summarise_metrics
+from ai.speech import cleanup_attempt_audio, save_turn_audio, summarise_metrics
 from ai.voice import examiner_voice_payload
 from ai.ai_provider import get_ai
 from database.database import execute, query_all, query_one
@@ -43,7 +43,7 @@ class ExamEngine:
     def __init__(self, bank: PromptBank | None = None):
         self.bank = bank or PromptBank()
 
-    def start(self, user_id: int, exam_type: str, mode: str, topic_title: str = "", topic_notes: str = "") -> dict:
+    def start(self, user_id: int, exam_type: str, mode: str, topic_title: str = "", topic_notes: str = "", picture_id: str = "") -> dict:
         exam_type = exam_type if exam_type in {"full", "roleplay", "topic_talk", "picture"} else "full"
         mode = "practice" if mode == "practice" else "full"
         payload = {
@@ -52,12 +52,18 @@ class ExamEngine:
             "topic_title": topic_title.strip(),
             "topic_notes": topic_notes.strip(),
             "turns": [],
+            "used_followup_ids": [],
         }
         if exam_type in {"full", "roleplay"}:
             payload["roleplay"] = self.bank.choose_roleplay(user_id)
         if exam_type in {"full", "picture"}:
-            avoid = payload.get("roleplay", {}).get("topic_area")
-            payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
+            if picture_id:
+                chosen = self.bank.choose_picture_by_id(picture_id)
+                self.bank.record_usage(user_id, chosen, "picture")
+                payload["picture"] = chosen
+            else:
+                avoid = payload.get("roleplay", {}).get("topic_area")
+                payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
         if exam_type in {"full", "topic_talk"}:
             title = topic_title.strip() or "your chosen Global Issues topic"
             payload["topic_followups"] = self.bank.choose_topic_followups(user_id, title)
@@ -104,6 +110,7 @@ class ExamEngine:
             },
             "awaiting_student": bool(prompt) and stage not in {"preparation", "complete"},
             "student_turns_in_stage": student_count,
+            "marking_error": payload.get("marking_error"),
             "disclaimer": "AI-generated marks are estimates for practice purposes and are not official Pearson Edexcel marks or grades.",
         }
 
@@ -115,25 +122,91 @@ class ExamEngine:
             _save_payload(attempt_id, payload, stage=next_stage)
         return self.state(attempt_id, user_id)
 
-    def receive_turn(self, attempt_id: int, user_id: int, transcript: str, metrics: dict | None = None) -> dict:
+    def receive_turn(
+        self,
+        attempt_id: int,
+        user_id: int,
+        transcript: str,
+        metrics: dict | None = None,
+        *,
+        audio_bytes: bytes | None = None,
+        audio_mime: str | None = None,
+        audio_ext: str | None = None,
+    ) -> dict:
         attempt = self._get(attempt_id, user_id)
         if attempt["status"] != "in_progress":
-            return {"error": "This attempt has finished."}
+            return {"error": "This attempt has finished.", "code": "attempt_finished", "retry": False}
         payload = _payload(attempt)
+        if payload.get("turn_lock"):
+            return {"error": "Your previous answer is still being processed.", "code": "duplicate_submission", "retry": True}
+        payload["turn_lock"] = True
+        _save_payload(attempt_id, payload)
+        try:
+            return self._receive_turn_unlocked(
+                attempt_id,
+                user_id,
+                attempt,
+                payload,
+                transcript,
+                metrics,
+                audio_bytes=audio_bytes,
+                audio_mime=audio_mime,
+                audio_ext=audio_ext,
+            )
+        finally:
+            latest = query_one("SELECT payload_json FROM attempts WHERE id = ? AND user_id = ?", (attempt_id, user_id))
+            if latest:
+                unlocked = json.loads(latest["payload_json"] or "{}")
+                unlocked["turn_lock"] = False
+                execute("UPDATE attempts SET payload_json = ? WHERE id = ?", (json.dumps(unlocked), attempt_id))
+
+    def _receive_turn_unlocked(
+        self,
+        attempt_id: int,
+        user_id: int,
+        attempt,
+        payload: dict,
+        transcript: str,
+        metrics: dict | None,
+        *,
+        audio_bytes: bytes | None,
+        audio_mime: str | None,
+        audio_ext: str | None,
+    ) -> dict:
         stage = attempt["stage"]
         metrics_summary = summarise_metrics(metrics)
         text = (transcript or "").strip()
+        ai = get_ai()
 
-        # THE FIX: capture which prompt is actually being answered BEFORE
-        # appending the new turn. _current_prompt() determines "current" by
-        # counting how many student turns already exist in this stage --
-        # calling it AFTER appending (the old order) meant it counted the
-        # answer that was just given and returned the NEXT prompt instead,
-        # so every stored prompt_id was one question ahead of the answer it
-        # was attached to. This silently broke every downstream feature that
-        # pairs an answer with its question (marking prompts, feedback
-        # grounding, practice notes).
+        if not text and audio_bytes:
+            if ai and ai.supports_audio():
+                try:
+                    text = (ai.transcribe_audio(audio_bytes, audio_mime or "audio/webm") or "").strip()
+                except Exception:
+                    text = ""
+                if not text:
+                    return {
+                        "error": "The recording could not be transcribed. Please record your answer again.",
+                        "code": "transcription_unavailable",
+                        "retry": True,
+                    }
+            else:
+                return {
+                    "error": "Speech could not be transcribed, and the current AI provider cannot listen to audio. Please record again in a browser with speech recognition.",
+                    "code": "transcription_unavailable",
+                    "retry": True,
+                }
+        if not text and not audio_bytes:
+            return {"error": "No speech was captured. Please record your answer and try again.", "code": "empty_response", "retry": True}
+
         answered_prompt = self._current_prompt(payload, stage)
+        audio_path = None
+        if audio_bytes and audio_ext:
+            audio_path = save_turn_audio(attempt_id, audio_bytes, audio_ext)
+            metrics_summary["audio_received"] = True
+            metrics_summary["audio_path"] = audio_path
+        elif audio_bytes:
+            metrics_summary["audio_received"] = True
 
         payload.setdefault("turns", []).append(
             {
@@ -142,6 +215,7 @@ class ExamEngine:
                 "text": text,
                 "metrics": metrics_summary,
                 "prompt_id": (answered_prompt or {}).get("id"),
+                "audio_path": audio_path,
                 "at": _now(),
             }
         )
@@ -159,6 +233,8 @@ class ExamEngine:
                 _now(),
             ),
         )
+        if stage in {"topic_talk", "picture"}:
+            self._maybe_adapt_followup(payload, stage, answered_prompt, text)
         coaching = None
         if attempt["mode"] == "practice" and stage != "warmup":
             coaching = self._practice_note(text, stage, answered_prompt)
@@ -175,8 +251,28 @@ class ExamEngine:
         attempt = self._get(attempt_id, user_id)
         payload = _payload(attempt)
         marking = mark_attempt(attempt_id, self._marking_payload(payload))
+        if marking.get("unavailable"):
+            payload["marking_error"] = marking.get("error")
+            execute(
+                """UPDATE attempts SET status='marking_unavailable', stage='complete', completed_at=?,
+                   roleplay_score=NULL, topic_talk_score=NULL, picture_score=NULL, total_score=NULL,
+                   strongest_area=NULL, weakest_area=NULL WHERE id=? AND user_id=?""",
+                (_now(), attempt_id, user_id),
+            )
+            _save_payload(attempt_id, payload)
+            return {"marking": marking, "feedback": None, "unavailable": True}
         transcripts = [dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
         feedback = build_feedback(attempt_id, marking, transcripts, payload)
+        if feedback.get("unavailable"):
+            payload["marking_error"] = feedback.get("error")
+            execute(
+                """UPDATE attempts SET status='marking_unavailable', stage='complete', completed_at=?
+                   WHERE id=? AND user_id=?""",
+                (_now(), attempt_id, user_id),
+            )
+            _save_payload(attempt_id, payload)
+            return {"marking": marking, "feedback": feedback, "unavailable": True}
+        payload.pop("marking_error", None)
         execute(
             """UPDATE attempts SET status='completed', stage='complete', completed_at=?,
                roleplay_score=?, topic_talk_score=?, picture_score=?, total_score=?,
@@ -193,7 +289,19 @@ class ExamEngine:
                 user_id,
             ),
         )
-        return {"marking": marking, "feedback": feedback}
+        _save_payload(attempt_id, payload)
+        cleanup_attempt_audio(attempt_id)
+        return {"marking": marking, "feedback": feedback, "unavailable": False}
+
+    def retry_marking(self, attempt_id: int, user_id: int) -> dict:
+        attempt = self._get(attempt_id, user_id)
+        if attempt["status"] not in {"marking_unavailable", "completed"}:
+            return {"error": "This attempt cannot be re-marked yet.", "retry": False}
+        execute(
+            "UPDATE attempts SET status='in_progress', stage='complete' WHERE id=? AND user_id=?",
+            (attempt_id, user_id),
+        )
+        return self.finish(attempt_id, user_id)
 
     def _partial_total(self, exam_type: str, marking: dict) -> int:
         return {
@@ -219,6 +327,60 @@ class ExamEngine:
             order = ["preparation", "picture", "complete"]
         index = order.index(stage) if stage in order else 0
         return {"step": index + 1, "total": len(order), "order": order}
+
+    def _maybe_adapt_followup(self, payload: dict, stage: str, answered_prompt: dict | None, text: str) -> None:
+        """Reorder remaining bank prompts using the student's last answer when AI is available."""
+        if stage == "topic_talk":
+            pool = payload.get("topic_followups") or []
+            student_turns = [t for t in payload.get("turns", []) if t.get("stage") == stage and t.get("speaker") == "student"]
+            asked = [t.get("prompt_id") for t in student_turns if t.get("prompt_id") and t.get("prompt_id") != "topic-start"]
+            remaining = [p for p in pool if p.get("id") not in asked]
+            chosen = self._choose_context_prompt(stage, answered_prompt, text, remaining)
+            if not chosen:
+                return
+            used_items = [p for p in pool if p.get("id") in asked]
+            rest = [p for p in remaining if p.get("id") != chosen.get("id")]
+            payload["topic_followups"] = used_items + [chosen] + rest
+        elif stage == "picture":
+            card = payload.get("picture") or {}
+            prompts = list(card.get("examiner_prompts") or [])
+            student_n = sum(1 for t in payload.get("turns", []) if t.get("stage") == stage and t.get("speaker") == "student")
+            if student_n < 1 or student_n >= len(prompts):
+                return
+            used_prompts = prompts[:student_n]
+            remaining = prompts[student_n:]
+            chosen = self._choose_context_prompt(stage, answered_prompt, text, remaining)
+            if not chosen:
+                return
+            rest = [p for p in remaining if p.get("id") != chosen.get("id")]
+            card["examiner_prompts"] = used_prompts + [chosen] + rest
+            payload["picture"] = card
+
+    def _choose_context_prompt(self, stage: str, answered_prompt: dict | None, text: str, remaining: list[dict]) -> dict | None:
+        if not remaining:
+            return None
+        ai = get_ai()
+        if not ai or not ai.is_available():
+            return remaining[0]
+        options = [{"id": p.get("id"), "prompt": p.get("prompt") or p.get("spoken")} for p in remaining]
+        last_q = (answered_prompt or {}).get("display") or (answered_prompt or {}).get("spoken") or ""
+        try:
+            result = ai.generate_json(
+                f"""You are a 4XES2 speaking examiner choosing the NEXT question from a fixed list.
+Section: {stage}
+Last question: {last_q}
+Student answer: {text}
+Remaining allowed questions: {json.dumps(options)}
+Pick the most relevant unused question. Do not invent a new question. Do not invent what the student said.
+Return JSON: {{"prompt_id": "{options[0]['id']}", "reason": "short reason"}}""",
+                system="Return valid JSON only.",
+                max_tokens=120,
+                temperature=0.2,
+            )
+            pid = result.get("prompt_id")
+            return next((p for p in remaining if p.get("id") == pid), remaining[0])
+        except Exception:
+            return remaining[0]
 
     def _current_prompt(self, payload: dict, stage: str) -> dict | None:
         student_turns = [t for t in payload.get("turns", []) if t.get("stage") == stage and t.get("speaker") == "student"]
@@ -259,9 +421,13 @@ class ExamEngine:
             if n >= len(prompts):
                 return None
             p = prompts[n]
+            spoken = p["spoken"]
+            prev = prompts[n - 1]
+            if prev.get("ask_question") and prev.get("brief_reply"):
+                spoken = prev["brief_reply"] + " " + spoken
             return {
                 "id": f"{card.get('id')}-{n}",
-                "spoken": p["spoken"],
+                "spoken": spoken,
                 "display": p["spoken"],
                 "candidate_bullet": (card.get("candidate_prompts") or [None] * 5)[n],
                 "unseen": p.get("unseen"),
@@ -347,12 +513,12 @@ class ExamEngine:
                 out.append({
                     "text": t.get("text", ""),
                     "metrics": t.get("metrics") or {},
+                    "audio_path": t.get("audio_path") or (t.get("metrics") or {}).get("audio_path"),
                     "requires_question": requires,
                     "question": question,
                 })
             return out
 
-        # Ensure we only get turns for stages that were actually attempted
         return {
             "exam_type": payload.get("exam_type", "full"),
             "roleplay_student_turns": student("roleplay") if payload.get("roleplay") else [],
@@ -361,88 +527,21 @@ class ExamEngine:
         }
 
     def _practice_note(self, text: str, stage: str, prompt: dict | None = None) -> str:
-        """Generate dynamic, content-aware practice feedback using AI if available."""
         ai = get_ai()
         if ai and ai.is_available():
             return self._practice_note_with_ai(text, stage, ai, prompt)
-        
-        # Fallback to rule-based feedback
-        words = text.split()
-        word_count = len(words)
-        text_lower = text.lower()
-        question_text = (prompt or {}).get("display") or (prompt or {}).get("spoken") or ""
-        
-        # Sophisticated content analysis
-        feedback_messages = []
-        
-        # Length analysis
-        if word_count < 5:
-            feedback_messages.append("Your answer was very brief. Try to expand with more detail.")
-        elif word_count < 10:
-            feedback_messages.append("Good start, but add more information to fully develop your answer.")
-        elif word_count > 30:
-            feedback_messages.append("You gave a detailed response. In exams, balance detail with time management.")
-        
-        # Content analysis based on stage
-        if stage == "roleplay":
-            # Only this specific prompt's actual requirement matters -- most
-            # roleplay prompts do NOT require a question, so checking for
-            # "?" unconditionally on every turn (the previous behaviour)
-            # produced an irrelevant note on 4 out of 5 answers.
-            requires_question = bool((prompt or {}).get("ask_question"))
-            if requires_question:
-                if "?" in text:
-                    feedback_messages.append("Good job asking your question as required by this prompt.")
-                else:
-                    feedback_messages.append("This prompt required you to ask a question — remember to do that next time.")
-            
-            if "please" in text_lower or "could you" in text_lower:
-                feedback_messages.append("Polite language is appropriate for role-play situations.")
-        
-        elif stage == "topic_talk":
-            if "because" in text_lower:
-                feedback_messages.append("Good use of reasoning with 'because'.")
-            elif "for example" in text_lower or "such as" in text_lower:
-                feedback_messages.append("Nice use of examples to support your points.")
-            else:
-                feedback_messages.append("Try to add 'because' and examples to support your opinions.")
-            
-            if "i think" in text_lower or "in my opinion" in text_lower:
-                feedback_messages.append("Clear expression of personal opinion.")
-            
-            if "first" in text_lower or "second" in text_lower or "finally" in text_lower:
-                feedback_messages.append("Good use of sequencing words to structure your answer.")
-        
-        elif stage == "picture":
-            if "in the picture" in text_lower or "i can see" in text_lower:
-                feedback_messages.append("Good description of what you see in the image.")
-            else:
-                feedback_messages.append("Remember to describe what you can see in the picture.")
-            
-            if "might" in text_lower or "could" in text_lower or "would" in text_lower:
-                feedback_messages.append("Good use of speculation about the image.")
-            else:
-                feedback_messages.append("Try to speculate about what might be happening using 'might' or 'could'.")
-        
-        if not feedback_messages:
-            return "Good response. Keep practicing to improve your speaking skills."
-        if question_text:
-            return f"(On \"{question_text}\") " + " ".join(feedback_messages)
-        return " ".join(feedback_messages)
-    
+        return "Your answer was saved. Personalized practice notes need an AI examiner."
+
     def _practice_note_with_ai(self, text: str, stage: str, ai, prompt: dict | None = None) -> str:
-        """Use AI to generate personalized practice feedback."""
         stage_context = {
             "roleplay": "Task 1 Role Play: Student is in a specific role-play situation",
             "topic_talk": "Task 2 Topic Talk: Student is presenting on a chosen topic",
             "picture": "Task 3 Picture Conversation: Student is discussing a photograph"
         }.get(stage, "Speaking practice")
-
         question_text = (prompt or {}).get("display") or (prompt or {}).get("spoken") or "(question not available)"
         requirement_note = ""
         if stage == "roleplay" and (prompt or {}).get("ask_question"):
             requirement_note = "\nIMPORTANT: This specific prompt required the student to ask a question of the examiner."
-
         prompt_text = f"""You are an IGCSE English as a Second Language examiner giving brief, helpful feedback during practice.
 
 CONTEXT: {stage_context}
@@ -450,15 +549,12 @@ EXAMINER ASKED: "{question_text}"{requirement_note}
 STUDENT RESPONSE: "{text}"
 
 Provide ONE concise, encouraging feedback comment (max 25 words) that:
-- Is specific to what they said in response to THIS question (not a generic comment that could apply to any answer)
+- Is specific to what they said in response to THIS question
 - Identifies one strength OR one area for improvement
-- Is constructive and helpful
 - References IGCSE criteria where relevant
 
 Return ONLY the feedback comment, no other text."""
-
         try:
             return ai.generate_text(prompt_text, max_tokens=50, temperature=0.7).strip()
-        except Exception as e:
-            print(f"AI practice note failed: {e}")
-            return "Good response. Keep practicing to improve your speaking skills."
+        except Exception:
+            return "Your answer was saved, but a practice note could not be generated. Continue to the next prompt."

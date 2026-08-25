@@ -1,10 +1,15 @@
 from flask import g, jsonify, redirect, render_template, request, url_for
+import json
+import logging
 
 from ai.examiner import ExamEngine
+from ai.speech import SpeechError, process_upload
 from database.database import query_one
 from routes import exam_bp
 from routes.auth import login_required
 from services.image_fetcher import get_image_fetcher
+
+logger = logging.getLogger(__name__)
 
 engine = ExamEngine()
 image_fetcher = get_image_fetcher()
@@ -104,14 +109,60 @@ def state(attempt_id):
 def turn(attempt_id):
     if _owned(attempt_id) is None:
         return jsonify({"error": "Not found"}), 404
-    data = request.get_json(silent=True) or {}
-    transcript = (data.get("transcript") or "")[:4000]
-    metrics = data.get("metrics") or {}
-    result = engine.receive_turn(attempt_id, g.user["id"], transcript, metrics)
+    audio_bytes = None
+    audio_mime = None
+    audio_ext = None
+    if request.files.get("audio"):
+        try:
+            metrics = json.loads(request.form.get("metrics") or "{}")
+        except json.JSONDecodeError:
+            metrics = {}
+        transcript = (request.form.get("transcript") or "")[:4000]
+        try:
+            processed = process_upload(request.files["audio"], metrics)
+        except SpeechError as exc:
+            return jsonify(exc.as_dict()), 400
+        audio_bytes = processed["bytes"]
+        audio_mime = processed["mime"]
+        audio_ext = processed["ext"]
+        metrics["audio_received"] = True
+    else:
+        data = request.get_json(silent=True) or {}
+        transcript = (data.get("transcript") or "")[:4000]
+        metrics = data.get("metrics") or {}
+    try:
+        result = engine.receive_turn(
+            attempt_id,
+            g.user["id"],
+            transcript,
+            metrics,
+            audio_bytes=audio_bytes,
+            audio_mime=audio_mime,
+            audio_ext=audio_ext,
+        )
+    except Exception:
+        # Log the full traceback server-side; the browser gets no internal detail.
+        logger.exception("Saving turn failed for attempt %s", attempt_id)
+        return jsonify({"error": "The answer could not be saved. Please retry.", "code": "database_failure", "retry": True}), 500
+    if result.get("error"):
+        status = 409 if result.get("code") == "duplicate_submission" else 400
+        return jsonify(result), status
     if result.get("stage") == "complete":
-        engine.finish(attempt_id, g.user["id"])
+        finished = engine.finish(attempt_id, g.user["id"])
         result["redirect"] = url_for("exam.results", attempt_id=attempt_id)
+        result["unavailable"] = bool(finished.get("unavailable"))
+        if finished.get("unavailable"):
+            result["error"] = (finished.get("marking") or {}).get("error") or (finished.get("feedback") or {}).get("error")
     return jsonify(result)
+
+
+@exam_bp.route("/exam/<int:attempt_id>/retry-marking", methods=["POST"])
+@login_required
+def retry_marking(attempt_id):
+    if _owned(attempt_id) is None:
+        return redirect(url_for("dashboard.home"))
+    engine.retry_marking(attempt_id, g.user["id"])
+    return redirect(url_for("exam.results", attempt_id=attempt_id))
 
 
 @exam_bp.route("/exam/<int:attempt_id>/results")
@@ -120,13 +171,11 @@ def results(attempt_id):
     attempt = _owned(attempt_id)
     if attempt is None:
         return redirect(url_for("dashboard.home"))
-    if attempt["status"] != "completed":
+    if attempt["status"] == "in_progress":
         engine.finish(attempt_id, g.user["id"])
         attempt = _owned(attempt_id)
     marking_row = query_one("SELECT * FROM markings WHERE attempt_id = ?", (attempt_id,))
     feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
-    import json
-
     marking = json.loads(marking_row["justification_json"]) if marking_row else {}
     feedback = None
     if feedback_row:
@@ -137,7 +186,8 @@ def results(attempt_id):
             "recommendations": json.loads(feedback_row["recommendations_json"]),
             "examiner_comments": feedback_row["examiner_comments"],
         }
-    return render_template("exam/results.html", attempt=attempt, marking=marking, feedback=feedback)
+    state = engine.state(attempt_id, g.user["id"])
+    return render_template("exam/results.html", attempt=attempt, marking=marking, feedback=feedback, state=state)
 
 
 @exam_bp.route("/exam/<int:attempt_id>/feedback")

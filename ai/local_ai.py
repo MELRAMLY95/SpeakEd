@@ -176,9 +176,7 @@ class OllamaProvider(AIProvider):
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
             print(f"Ollama text generation failed: {e}")
-            if json_mode:
-                raise
-            return "Good response. Keep practicing to improve your speaking skills."
+            raise
 
 
 class GeminiProvider(AIProvider):
@@ -244,7 +242,69 @@ class GeminiProvider(AIProvider):
         )
         with urllib.request.urlopen(request, timeout=self.timeout) as response:
             body = json.loads(response.read().decode("utf-8"))
+        return self._text_from_body(body)
 
+    def supports_audio(self) -> bool:
+        return bool(self.api_key)
+
+    def generate_with_audio(
+        self,
+        prompt: str,
+        audio_bytes: bytes,
+        mime_type: str,
+        *,
+        system: str = "",
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 800,
+    ) -> str:
+        import base64
+
+        if not audio_bytes:
+            raise RuntimeError("Gemini audio generation requires the student's recording")
+        mime = (mime_type or "audio/webm").split(";")[0].strip() or "audio/webm"
+        parts: list[dict[str, Any]] = [
+            {"text": prompt},
+            {"inline_data": {"mime_type": mime, "data": base64.b64encode(audio_bytes).decode("ascii")}},
+        ]
+        payload: dict[str, Any] = {
+            "contents": [{"role": "user", "parts": parts}],
+            "generationConfig": {
+                "temperature": temperature,
+                "maxOutputTokens": max_tokens,
+            },
+        }
+        if system:
+            payload["systemInstruction"] = {"parts": [{"text": system}]}
+        if json_mode:
+            payload["generationConfig"]["responseMimeType"] = "application/json"
+        data = json.dumps(payload).encode("utf-8")
+        url = (
+            f"https://generativelanguage.googleapis.com/v1beta/models/"
+            f"{self.model}:generateContent?key={self.api_key}"
+        )
+        request = urllib.request.Request(
+            url,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=self.timeout) as response:
+            body = json.loads(response.read().decode("utf-8"))
+        return self._text_from_body(body)
+
+    def transcribe_audio(self, audio_bytes: bytes, mime_type: str) -> str:
+        text = self.generate_with_audio(
+            "Transcribe this student's spoken English. Return only the transcript, with no commentary.",
+            audio_bytes,
+            mime_type,
+            temperature=0.0,
+            max_tokens=800,
+        )
+        return (text or "").strip()
+
+    @staticmethod
+    def _text_from_body(body: dict[str, Any]) -> str:
         candidates = body.get("candidates") or []
         if not candidates:
             block_reason = (body.get("promptFeedback") or {}).get("blockReason")
@@ -268,9 +328,7 @@ class GeminiProvider(AIProvider):
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
             print(f"Gemini text generation failed: {e}")
-            if json_mode:
-                raise
-            return "Good response. Keep practicing to improve your speaking skills."
+            raise
 
 
 class ZAIProvider(AIProvider):
@@ -356,9 +414,7 @@ class ZAIProvider(AIProvider):
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
             print(f"Z.AI text generation failed: {e}")
-            if json_mode:
-                raise
-            return "Good response. Keep practicing to improve your speaking skills."
+            raise
 
 
 class OpenAIProvider(AIProvider):
@@ -418,9 +474,7 @@ class OpenAIProvider(AIProvider):
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
             print(f"OpenAI text generation failed: {e}")
-            if json_mode:
-                raise
-            return "Good response. Keep practicing to improve your speaking skills."
+            raise
 
 
 def create_provider(config: dict) -> AIProvider:
