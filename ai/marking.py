@@ -24,8 +24,9 @@ def _examiner_failure(exc: Exception, fallback: str) -> MarkingUnavailable:
     text = str(exc)
     if "429" in text or "RESOURCE_EXHAUSTED" in text or "quota" in text.lower():
         return MarkingUnavailable(
-            "The Gemini examiner hit its request limit. Wait about a minute, then use Retry marking. "
-            "The free tier allows a small number of requests per minute; answering quickly uses them up."
+            "Every Gemini model hit its request limit, so no mark was recorded. "
+            "The free Gemini 3.6 Flash tier is only about 20 requests per day, and practice turns "
+            "use that quota before marking. Try Retry marking later today, or use a paid Gemini key."
         )
     return MarkingUnavailable(fallback)
 
@@ -234,14 +235,17 @@ def _student_turns(turns: list[dict]) -> list[dict]:
 def _call_json(ai, prompt: str, system: str, max_tokens: int, audio: tuple[bytes | None, str | None]):
     audio_bytes, mime = audio
     if audio_bytes and ai.supports_audio():
-        return ai.generate_json_with_audio(
-            prompt,
-            audio_bytes,
-            mime or "audio/webm",
-            system=system,
-            max_tokens=max_tokens,
-            temperature=0.1,
-        )
+        try:
+            return ai.generate_json_with_audio(
+                prompt,
+                audio_bytes,
+                mime or "audio/webm",
+                system=system,
+                max_tokens=max_tokens,
+                temperature=0.1,
+            )
+        except Exception as exc:
+            logger.warning("Audio marking failed; retrying from the transcript: %s", exc)
     return ai.generate_json(prompt, system=system, max_tokens=max_tokens, temperature=0.1)
 
 

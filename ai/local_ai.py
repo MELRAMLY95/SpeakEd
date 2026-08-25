@@ -1,9 +1,19 @@
 import json
+import logging
 import urllib.error
 import urllib.request
 from typing import Any
 
-from ai.ai_provider import AIMessage, AIProvider
+from ai.ai_provider import AIMessage, AIProvider, _is_quota_error
+
+logger = logging.getLogger(__name__)
+
+GEMINI_FALLBACK_MODELS = (
+    "gemini-2.5-flash",
+    "gemini-2.5-flash-lite",
+    "gemini-2.0-flash",
+    "gemini-2.0-flash-lite",
+)
 
 
 class RuleBasedProvider(AIProvider):
@@ -196,15 +206,24 @@ class GeminiProvider(AIProvider):
     def is_available(self) -> bool:
         return bool(self.api_key)
 
-    def _is_gemini3(self) -> bool:
-        return "gemini-3" in (self.model or "").lower()
+    def _is_gemini3(self, model: str | None = None) -> bool:
+        return "gemini-3" in (model or self.model or "").lower()
 
-    def _generation_config(self, *, temperature: float, max_tokens: int, json_mode: bool) -> dict[str, Any]:
+    def _models_to_try(self) -> list[str]:
+        models = [self.model]
+        for name in GEMINI_FALLBACK_MODELS:
+            if name not in models:
+                models.append(name)
+        return models
+
+    def _generation_config_for(
+        self, model: str, *, temperature: float, max_tokens: int, json_mode: bool
+    ) -> dict[str, Any]:
         # Gemini 3.6 Flash thinks at "medium" by default. Those thought tokens
         # count against maxOutputTokens, so a 280-token JSON mark comes back
         # empty and marking_unavailable even with a valid API key.
         config: dict[str, Any] = {"maxOutputTokens": max_tokens}
-        if self._is_gemini3():
+        if self._is_gemini3(model):
             config["thinkingConfig"] = {"thinkingLevel": "minimal"}
         else:
             config["temperature"] = temperature
@@ -213,11 +232,22 @@ class GeminiProvider(AIProvider):
             config["responseMimeType"] = "application/json"
         return config
 
-    def _post(self, payload: dict[str, Any]) -> str:
+    def _should_fallback(self, exc: Exception) -> bool:
+        text = str(exc).lower()
+        return (
+            _is_quota_error(exc)
+            or "404" in text
+            or "not found" in text
+            or "is not found" in text
+            or "no visible text" in text
+            or "no candidates" in text
+        )
+
+    def _post_model(self, model: str, payload: dict[str, Any]) -> str:
         data = json.dumps(payload).encode("utf-8")
         url = (
             f"https://generativelanguage.googleapis.com/v1beta/models/"
-            f"{self.model}:generateContent?key={self.api_key}"
+            f"{model}:generateContent?key={self.api_key}"
         )
         request = urllib.request.Request(
             url,
@@ -234,6 +264,41 @@ class GeminiProvider(AIProvider):
         except urllib.error.URLError as exc:
             raise RuntimeError(f"Gemini connection error: {exc.reason}") from exc
         return self._text_from_body(body)
+
+    def _send(
+        self,
+        contents: list[dict[str, Any]],
+        *,
+        system: str = "",
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 800,
+    ) -> str:
+        last_error: Exception | None = None
+        tried: list[str] = []
+        for model in self._models_to_try():
+            tried.append(model)
+            payload: dict[str, Any] = {
+                "contents": contents,
+                "generationConfig": self._generation_config_for(
+                    model, temperature=temperature, max_tokens=max_tokens, json_mode=json_mode
+                ),
+            }
+            if system:
+                payload["systemInstruction"] = {"parts": [{"text": system}]}
+            try:
+                text = self._post_model(model, payload)
+                if model != self.model:
+                    logger.warning("Gemini switched from %s to %s after the preferred model failed", self.model, model)
+                    self.model = model
+                return text
+            except RuntimeError as exc:
+                last_error = exc
+                if self._should_fallback(exc):
+                    logger.warning("Gemini model %s failed: %s", model, exc)
+                    continue
+                raise
+        raise RuntimeError(f"Gemini failed for models {tried}: {last_error}") from last_error
 
     def generate(
         self,
@@ -255,16 +320,13 @@ class GeminiProvider(AIProvider):
             contents.append({"role": role, "parts": [{"text": m.content}]})
         if not contents:
             contents = [{"role": "user", "parts": [{"text": ""}]}]
-
-        payload: dict[str, Any] = {
-            "contents": contents,
-            "generationConfig": self._generation_config(
-                temperature=temperature, max_tokens=max_tokens, json_mode=json_mode
-            ),
-        }
-        if system_parts:
-            payload["systemInstruction"] = {"parts": [{"text": "\n\n".join(system_parts)}]}
-        return self._post(payload)
+        return self._send(
+            contents,
+            system="\n\n".join(system_parts),
+            json_mode=json_mode,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
 
     def supports_audio(self) -> bool:
         return bool(self.api_key)
@@ -289,15 +351,13 @@ class GeminiProvider(AIProvider):
             {"text": prompt},
             {"inline_data": {"mime_type": mime, "data": base64.b64encode(audio_bytes).decode("ascii")}},
         ]
-        payload: dict[str, Any] = {
-            "contents": [{"role": "user", "parts": parts}],
-            "generationConfig": self._generation_config(
-                temperature=temperature, max_tokens=max_tokens, json_mode=json_mode
-            ),
-        }
-        if system:
-            payload["systemInstruction"] = {"parts": [{"text": system}]}
-        return self._post(payload)
+        return self._send(
+            [{"role": "user", "parts": parts}],
+            system=system,
+            json_mode=json_mode,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
 
     def transcribe_audio(self, audio_bytes: bytes, mime_type: str) -> str:
         text = self.generate_with_audio(

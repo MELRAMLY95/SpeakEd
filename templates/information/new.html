@@ -2,31 +2,48 @@
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/information.css') }}">{% endblock %}
 {% block title %}Gather New Information{% endblock %}
 {% block content %}
-<section class="wrap">
+<section class="wrap info-section">
   <div class="page-header">
-    <h1>Gather New Information</h1>
-    <p>Enter a topic and AI will help you gather comprehensive information.</p>
+    <div class="header-content">
+      <h1>Gather New Information</h1>
+      <p>Enter a topic and AI will gather study notes you can keep and edit.</p>
+    </div>
     <a class="btn btn-ghost" href="{{ url_for('information.home') }}">← Back to Information</a>
   </div>
 
-  <form class="form" method="POST" action="{{ url_for('information.new') }}">
+  <form class="form" method="POST" action="{{ url_for('information.new') }}" data-gather-form>
     <div class="form-group">
       <label for="topic">Topic</label>
-      <input 
-        type="text" 
-        id="topic" 
-        name="topic" 
-        required 
-        placeholder="e.g., Climate Change, World War II, Photosynthesis, etc."
+      <input
+        type="text"
+        id="topic"
+        name="topic"
+        required
+        value="{{ topic or '' }}"
+        placeholder="e.g., Climate Change, World War II, Photosynthesis"
         autofocus
       >
-      <small>Enter any topic you want to learn about</small>
+      <small>This can take up to a minute. Stay on this page until the notes appear.</small>
     </div>
 
     <div class="form-actions">
-      <button type="submit" class="btn btn-primary">Gather Information</button>
+      <button type="submit" class="btn btn-primary" data-gather-submit>Gather Information</button>
       <a class="btn btn-ghost" href="{{ url_for('information.home') }}">Cancel</a>
     </div>
   </form>
 </section>
+{% endblock %}
+{% block extra_js %}
+<script>
+(function () {
+  var form = document.querySelector("[data-gather-form]");
+  if (!form) return;
+  form.addEventListener("submit", function () {
+    var btn = form.querySelector("[data-gather-submit]");
+    if (!btn || btn.disabled) return;
+    btn.disabled = true;
+    btn.textContent = "Gathering information…";
+  });
+})();
+</script>
 {% endblock %}

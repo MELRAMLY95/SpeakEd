@@ -2,30 +2,33 @@
 {% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/information.css') }}">{% endblock %}
 {% block title %}Edit {{ info.topic }}{% endblock %}
 {% block content %}
-<section class="wrap">
+<section class="wrap info-section">
   <div class="page-header">
-    <h1>Edit Information</h1>
+    <div class="header-content">
+      <h1>Edit Information</h1>
+      <p>Change the topic or the saved notes, then save.</p>
+    </div>
     <a class="btn btn-ghost" href="{{ url_for('information.view', info_id=info.id) }}">← Back to {{ info.topic }}</a>
   </div>
 
   <form class="form" method="POST" action="{{ url_for('information.edit', info_id=info.id) }}">
     <div class="form-group">
       <label for="topic">Topic</label>
-      <input 
-        type="text" 
-        id="topic" 
-        name="topic" 
-        required 
+      <input
+        type="text"
+        id="topic"
+        name="topic"
+        required
         value="{{ info.topic }}"
       >
     </div>
 
     <div class="form-group">
       <label for="information">Information</label>
-      <textarea 
-        id="information" 
-        name="information" 
-        required 
+      <textarea
+        id="information"
+        name="information"
+        required
         rows="15"
       >{{ info.information }}</textarea>
       <small>Edit the gathered information as needed</small>

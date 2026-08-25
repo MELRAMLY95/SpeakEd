@@ -101,4 +101,57 @@ def test_quota_errors_are_not_retried():
     with patch("urllib.request.urlopen", side_effect=fake_urlopen):
         with pytest.raises(ValueError, match="429"):
             provider.generate_json("return json")
-    assert calls["n"] == 1
+    assert calls["n"] == len(provider._models_to_try())
+
+
+def test_empty_thought_response_falls_back_to_another_model():
+    calls = []
+
+    def fake_urlopen(request, timeout=None):
+        calls.append(request.full_url)
+        if "gemini-3.6-flash" in request.full_url:
+            return _mock_urlopen({
+                "candidates": [{
+                    "finishReason": "MAX_TOKENS",
+                    "content": {"parts": [{"text": "thinking...", "thought": True}]},
+                }]
+            })
+        return _mock_urlopen({
+            "candidates": [{"content": {"parts": [{"text": "Photosynthesis converts light into chemical energy."}]}}]
+        })
+
+    provider = GeminiProvider("test-key", "gemini-3.6-flash")
+    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+        text = provider.generate_text("Explain photosynthesis", max_tokens=200)
+    assert "Photosynthesis" in text
+    assert provider.model == "gemini-2.5-flash"
+    assert any("gemini-2.5-flash:" in url for url in calls)
+
+
+def test_quota_falls_back_to_another_gemini_model():
+    import io
+    import urllib.error
+
+    calls = []
+
+    def fake_urlopen(request, timeout=None):
+        calls.append(request.full_url)
+        if "gemini-3.6-flash" in request.full_url:
+            raise urllib.error.HTTPError(
+                request.full_url,
+                429,
+                "Too Many Requests",
+                hdrs={},
+                fp=io.BytesIO(b'{"error":{"status":"RESOURCE_EXHAUSTED","message":"quota"}}'),
+            )
+        return _mock_urlopen({
+            "candidates": [{"content": {"parts": [{"text": '{"mark": 2}'}]}}]
+        })
+
+    provider = GeminiProvider("test-key", "gemini-3.6-flash")
+    with patch("urllib.request.urlopen", side_effect=fake_urlopen):
+        result = provider.generate_json("return json")
+    assert result == {"mark": 2}
+    assert provider.model == "gemini-2.5-flash"
+    assert any("gemini-3.6-flash" in url for url in calls)
+    assert any("gemini-2.5-flash:" in url for url in calls)

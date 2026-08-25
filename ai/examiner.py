@@ -301,7 +301,13 @@ class ExamEngine:
             return {"marking": marking, "feedback": feedback, "unavailable": False}
         except Exception as exc:
             logger.exception("Marking failed for attempt %s", attempt_id)
+            error = str(exc)
             try:
+                row = query_one("SELECT * FROM attempts WHERE id = ? AND user_id = ?", (attempt_id, user_id))
+                if row is not None:
+                    payload = _payload(row)
+                    payload["marking_error"] = error
+                    _save_payload(attempt_id, payload)
                 execute(
                     """UPDATE attempts SET status='marking_unavailable', stage='complete', completed_at=?
                        WHERE id=? AND user_id=?""",
@@ -313,11 +319,11 @@ class ExamEngine:
                 "marking": {
                     "unavailable": True,
                     "retry": True,
-                    "error": "The AI examiner could not complete marking. Please retry in a minute.",
+                    "error": error,
                 },
                 "feedback": None,
                 "unavailable": True,
-                "error": str(exc),
+                "error": error,
             }
 
     def restore_scores_from_marking(self, attempt):
@@ -656,9 +662,11 @@ Return JSON: {{"prompt_id": "{options[0]['id']}", "reason": "short reason"}}""",
 
     def _practice_note(self, text: str, stage: str, prompt: dict | None = None) -> str:
         ai = get_ai()
-        if ai and ai.is_available():
+        # Gemini's free 3.6 Flash tier is ~20 requests/day. Live notes during
+        # each turn burn that quota before finish/retry can mark the attempt.
+        if ai and ai.is_available() and getattr(ai, "name", "") != "gemini":
             return self._practice_note_with_ai(text, stage, ai, prompt)
-        return "Your answer was saved. Personalized practice notes need an AI examiner."
+        return "Your answer was saved. Marks are generated when you finish this task."
 
     def _practice_note_with_ai(self, text: str, stage: str, ai, prompt: dict | None = None) -> str:
         stage_context = {

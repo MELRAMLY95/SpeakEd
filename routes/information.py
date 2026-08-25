@@ -1,4 +1,5 @@
 from datetime import datetime
+import logging
 import re
 
 from flask import flash, g, redirect, render_template, request, url_for
@@ -8,13 +9,56 @@ from database.database import execute, query_all, query_one
 from routes import information_bp
 from routes.auth import login_required
 
+logger = logging.getLogger(__name__)
+
+MIN_INFORMATION_CHARS = 80
+INFORMATION_SYSTEM = (
+    "You write study notes for IGCSE ESL students. Use plain text with short headings "
+    "and bullet points. Do not use markdown, hashtags, tables, or HTML."
+)
+
+
+def _plain_text(information: str) -> str:
+    """Turn model markdown into readable plain text without destroying lists."""
+    text = (information or "").replace("\r\n", "\n")
+    text = re.sub(r"(?m)^#{1,6}\s*", "", text)
+    text = re.sub(r"\*\*([^*]+)\*\*", r"\1", text)
+    text = re.sub(r"__([^_]+)__", r"\1", text)
+    text = re.sub(r"`([^`]+)`", r"\1", text)
+    text = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", text)
+    text = re.sub(r"(?m)^\s*[-*+]\s+", "• ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    return text.strip()
+
+
+def _safe_ai_error(exc: Exception) -> str:
+    text = str(exc)
+    text = re.sub(r"key=[^&\s]+", "key=REDACTED", text, flags=re.I)
+    return text[:400]
+
+
+def _manual_template(topic: str) -> str:
+    return (
+        f"Information about {topic}\n\n"
+        "Key Facts:\n"
+        f"[Add key facts about {topic} here]\n\n"
+        "Important Concepts:\n"
+        f"[Explain important concepts related to {topic}]\n\n"
+        "Examples:\n"
+        f"[Provide examples that help understand {topic}]\n\n"
+        "Explanations:\n"
+        f"[Add detailed explanations that would be helpful for learning about {topic}]\n\n"
+        "Additional Notes:\n"
+        f"[Add any other relevant information about {topic}]"
+    )
+
 
 @information_bp.route("/")
 @login_required
 def home():
     """Display all gathered information for the current user."""
     search_query = request.args.get("search", "").strip()
-    
+
     if search_query:
         gathered = query_all(
             "SELECT * FROM gathered_info WHERE user_id = ? AND (topic LIKE ? OR information LIKE ?) ORDER BY created_at DESC",
@@ -25,7 +69,7 @@ def home():
             "SELECT * FROM gathered_info WHERE user_id = ? ORDER BY created_at DESC",
             (g.user["id"],),
         )
-    
+
     return render_template("information/information.html", gathered=gathered, search_query=search_query)
 
 
@@ -39,58 +83,46 @@ def new():
             flash("Please enter a topic.", "error")
             return render_template("information/new.html")
 
-        # Get AI provider and generate information
         ai = get_ai()
-        
-        if ai:
+        information = None
+        if ai and ai.is_available():
+            prompt = (
+                f"Provide comprehensive information about the topic: {topic}. "
+                "Include key facts, concepts, examples, and explanations that would be helpful "
+                "for a student preparing IGCSE ESL speaking. Use plain text without markdown "
+                "formatting, hashtags, or special characters. Organize the information with "
+                "clear headings and bullet points for readability."
+            )
             try:
-                prompt = f"Provide comprehensive information about the topic: {topic}. Include key facts, concepts, examples, and explanations that would be helpful for a student learning this subject. Use plain text without markdown formatting, hashtags, or special characters. Organize the information with clear headings and bullet points for readability."
-                information = ai.generate_text(prompt, max_tokens=2000, temperature=0.7)
-                
-                # Clean up the AI response to remove markdown tags and special characters
-                import re
-                # Remove markdown headers (# ## ###)
-                information = re.sub(r'^#+\s*', '', information, flags=re.MULTILINE)
-                # Remove markdown bold/italic (**, *)
-                information = re.sub(r'\*\*([^*]+)\*\*', r'\1', information)
-                information = re.sub(r'\*([^*]+)\*', r'\1', information)
-                # Remove hashtags
-                information = re.sub(r'#(\w+)', r'\1', information)
-                # Remove other markdown characters
-                information = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', information)
-                # Clean up extra whitespace
-                information = re.sub(r'\n\s*\n\s*\n', '\n\n', information)
-                information = information.strip()
-                
-                if not information or len(information) < 50:
-                    flash("AI could not generate sufficient information. Please try again.", "error")
-                    return render_template("information/new.html")
-            except Exception as e:
-                print(f"AI generation error: {e}")
-                flash("Error generating information. Please try again.", "error")
-                return render_template("information/new.html")
+                information = _plain_text(
+                    ai.generate_text(
+                        prompt,
+                        max_tokens=4096,
+                        temperature=0.7,
+                        system=INFORMATION_SYSTEM,
+                    )
+                )
+            except Exception as exc:
+                logger.warning("AI information generation failed for %r: %s", topic, exc)
+                flash(
+                    "Could not generate information. "
+                    f"{_safe_ai_error(exc)} "
+                    "Try again in a minute, or pick a shorter topic.",
+                    "error",
+                )
+                return render_template("information/new.html", topic=topic)
+
+            if len(information) < MIN_INFORMATION_CHARS:
+                flash("AI could not generate enough information. Please try again.", "error")
+                return render_template("information/new.html", topic=topic)
         else:
-            # AI not available - provide a helpful template for manual entry
-            information = f"""Information about {topic}
+            information = _manual_template(topic)
+            flash(
+                "AI is not available, so a template was created for you to fill in. "
+                "Configure Gemini or Z.AI to generate notes automatically.",
+                "info",
+            )
 
-Key Facts:
-[Add key facts about {topic} here]
-
-Important Concepts:
-[Explain important concepts related to {topic}]
-
-Examples:
-[Provide examples that help understand {topic}]
-
-Explanations:
-[Add detailed explanations that would be helpful for learning about {topic}]
-
-Additional Notes:
-[Add any other relevant information about {topic}]
-"""
-            flash("AI service is not configured. A template has been created for you to fill in manually. To enable AI generation, configure Z.AI, Gemini, or Ollama API in your .env file.", "info")
-
-        # Store in database
         now = datetime.utcnow().isoformat()
         execute(
             "INSERT INTO gathered_info (user_id, topic, information, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",

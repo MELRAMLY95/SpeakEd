@@ -18,6 +18,7 @@ class FakeAIProvider(AIProvider):
         transcribe_fail: bool = False,
         transcribe_empty: bool = False,
         fail_feedback: bool = False,
+        fail_audio: bool = False,
     ):
         self.fail = fail
         self.invalid_json = invalid_json
@@ -25,6 +26,7 @@ class FakeAIProvider(AIProvider):
         self.transcribe_fail = transcribe_fail
         self.transcribe_empty = transcribe_empty
         self.fail_feedback = fail_feedback
+        self.fail_audio = fail_audio
         self.prompts: list[str] = []
         self.audio_calls = 0
 
@@ -60,6 +62,8 @@ class FakeAIProvider(AIProvider):
         if not audio_bytes:
             raise RuntimeError("missing audio")
         self.audio_calls += 1
+        if self.fail_audio:
+            raise RuntimeError("audio marking failed")
         if json_mode:
             return self.generate_text(prompt, json_mode=True, system=system, max_tokens=max_tokens, temperature=temperature)
         return self.transcribe_audio(audio_bytes, mime_type)
@@ -75,6 +79,18 @@ class FakeAIProvider(AIProvider):
     def _text_for(self, prompt: str) -> str:
         match = re.search(r'STUDENT RESPONSE: "(.*?)"', prompt, re.S)
         excerpt = (match.group(1) if match else prompt)[:80]
+        if "comprehensive information" in prompt.lower() or "information about the topic" in prompt.lower():
+            return (
+                "Key Facts\n"
+                "This topic matters for IGCSE ESL speaking because students can give reasons and examples.\n\n"
+                "Important Concepts\n"
+                "• Cause and effect\n"
+                "• Local and global impact\n\n"
+                "Examples\n"
+                "• A bottle deposit scheme reduces plastic waste.\n\n"
+                "Explanations\n"
+                "Develop one idea with a reason, then add a short personal example."
+            )
         return f"Specific note on: {excerpt}"
 
     def _student_blob(self, prompt: str) -> str:
@@ -147,4 +163,5 @@ def install_fake(monkeypatch, fake: FakeAIProvider | None = None) -> FakeAIProvi
     monkeypatch.setattr("ai.marking.get_ai", lambda: fake)
     monkeypatch.setattr("ai.feedback.get_ai", lambda: fake)
     monkeypatch.setattr("ai.ai_provider.get_ai", lambda: fake)
+    monkeypatch.setattr("routes.information.get_ai", lambda: fake)
     return fake
