@@ -17,11 +17,22 @@ def _mock_urlopen(body: dict):
 
 
 def test_gemini3_uses_minimal_thinking_and_omits_temperature():
+    provider = GeminiProvider("test-key", "gemini-3.6-flash")
+    config = provider._generation_config_for(
+        "gemini-3.6-flash", temperature=0.1, max_tokens=280, json_mode=True
+    )
+    assert config["thinkingConfig"]["thinkingLevel"] == "minimal"
+    assert "temperature" not in config
+    assert config["responseMimeType"] == "application/json"
+
+
+def test_gemini3_calls_25_flash_first():
     captured = {}
 
     def fake_urlopen(request, timeout=None):
-        captured["body"] = json.loads(request.data.decode("utf-8"))
+        captured["url"] = request.full_url
         captured["timeout"] = timeout
+        captured["body"] = json.loads(request.data.decode("utf-8"))
         return _mock_urlopen({
             "candidates": [{"content": {"parts": [{"text": '{"mark": 2}'}]}}]
         })
@@ -30,11 +41,10 @@ def test_gemini3_uses_minimal_thinking_and_omits_temperature():
     with patch("urllib.request.urlopen", side_effect=fake_urlopen):
         provider.generate([AIMessage(role="user", content="mark this")], json_mode=True, temperature=0.1, max_tokens=280)
 
-    config = captured["body"]["generationConfig"]
-    assert config["thinkingConfig"]["thinkingLevel"] == "minimal"
-    assert "temperature" not in config
-    assert config["responseMimeType"] == "application/json"
-    assert captured["timeout"] == 90
+    assert "gemini-2.5-flash:" in captured["url"]
+    assert captured["timeout"] == 45
+    assert captured["body"]["generationConfig"]["thinkingConfig"]["thinkingBudget"] == 0
+    assert provider.model == "gemini-2.5-flash"
 
 
 def test_gemini25_disables_thinking_budget():
@@ -90,7 +100,7 @@ def test_quota_errors_are_not_retried():
     def fake_urlopen(request, timeout=None):
         calls["n"] += 1
         raise urllib.error.HTTPError(
-            "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+            request.full_url,
             429,
             "Too Many Requests",
             hdrs={},
@@ -109,7 +119,7 @@ def test_empty_thought_response_falls_back_to_another_model():
 
     def fake_urlopen(request, timeout=None):
         calls.append(request.full_url)
-        if "gemini-3.6-flash" in request.full_url:
+        if "gemini-2.5-flash:" in request.full_url:
             return _mock_urlopen({
                 "candidates": [{
                     "finishReason": "MAX_TOKENS",
@@ -124,8 +134,8 @@ def test_empty_thought_response_falls_back_to_another_model():
     with patch("urllib.request.urlopen", side_effect=fake_urlopen):
         text = provider.generate_text("Explain photosynthesis", max_tokens=200)
     assert "Photosynthesis" in text
-    assert provider.model == "gemini-2.5-flash"
-    assert any("gemini-2.5-flash:" in url for url in calls)
+    assert provider.model == "gemini-2.5-flash-lite"
+    assert any("gemini-2.5-flash-lite" in url for url in calls)
 
 
 def test_quota_falls_back_to_another_gemini_model():
@@ -136,7 +146,7 @@ def test_quota_falls_back_to_another_gemini_model():
 
     def fake_urlopen(request, timeout=None):
         calls.append(request.full_url)
-        if "gemini-3.6-flash" in request.full_url:
+        if "gemini-2.5-flash:" in request.full_url:
             raise urllib.error.HTTPError(
                 request.full_url,
                 429,
@@ -152,6 +162,6 @@ def test_quota_falls_back_to_another_gemini_model():
     with patch("urllib.request.urlopen", side_effect=fake_urlopen):
         result = provider.generate_json("return json")
     assert result == {"mark": 2}
-    assert provider.model == "gemini-2.5-flash"
-    assert any("gemini-3.6-flash" in url for url in calls)
+    assert provider.model == "gemini-2.5-flash-lite"
     assert any("gemini-2.5-flash:" in url for url in calls)
+    assert any("gemini-2.5-flash-lite" in url for url in calls)

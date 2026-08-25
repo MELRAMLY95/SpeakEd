@@ -28,7 +28,7 @@ class Config:
     OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.2")
     # Gemini - Fallback provider (has free tier: https://ai.google.dev/pricing)
     GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")
-    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-3.6-flash")
+    GEMINI_MODEL = os.environ.get("GEMINI_MODEL", "gemini-2.5-flash")
     # OpenAI - Optional fallback
     OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "")
     OPENAI_MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")

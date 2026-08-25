@@ -266,7 +266,7 @@ class ExamEngine:
         return state
 
     def finish(self, attempt_id: int, user_id: int) -> dict:
-        from ai.feedback import build_feedback, feedback_from_marking
+        from ai.feedback import feedback_from_marking
         from ai.marking import mark_attempt
 
         try:
@@ -291,10 +291,7 @@ class ExamEngine:
             # so the results page showed dashes even though marking had succeeded.
             self._store_scores(attempt, marking)
             transcripts = [_row_dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
-            feedback = build_feedback(attempt_id, marking, transcripts, payload)
-            if feedback.get("unavailable"):
-                payload["feedback_error"] = feedback.get("error")
-                feedback = feedback_from_marking(attempt_id, marking, transcripts)
+            feedback = feedback_from_marking(attempt_id, marking, transcripts)
             payload.pop("marking_error", None)
             _save_payload(attempt_id, payload)
             cleanup_attempt_audio(attempt_id)

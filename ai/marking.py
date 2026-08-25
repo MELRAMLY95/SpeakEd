@@ -6,7 +6,6 @@ from pathlib import Path
 
 from database.database import execute
 from ai.ai_provider import get_ai
-from ai.speech import collect_attempt_audio
 
 logger = logging.getLogger(__name__)
 
@@ -233,19 +232,9 @@ def _student_turns(turns: list[dict]) -> list[dict]:
 
 
 def _call_json(ai, prompt: str, system: str, max_tokens: int, audio: tuple[bytes | None, str | None]):
-    audio_bytes, mime = audio
-    if audio_bytes and ai.supports_audio():
-        try:
-            return ai.generate_json_with_audio(
-                prompt,
-                audio_bytes,
-                mime or "audio/webm",
-                system=system,
-                max_tokens=max_tokens,
-                temperature=0.1,
-            )
-        except Exception as exc:
-            logger.warning("Audio marking failed; retrying from the transcript: %s", exc)
+    # Do not send recordings to the marker. Inline audio often exceeds Render's
+    # request time, so the worker is killed before any score is stored. The
+    # transcript is already saved on the attempt.
     return ai.generate_json(prompt, system=system, max_tokens=max_tokens, temperature=0.1)
 
 
@@ -272,15 +261,8 @@ def mark_roleplay(turns: list[dict], scheme: dict, *, ai=None, audio=None) -> di
             f'QUESTION REQUIRED: {"yes — award 0 if the student did not ask a question" if requires_question else "no"}'
         )
 
-    audio_tuple = audio
-    if not audio_tuple or not audio_tuple[0]:
-        data, mime, any_audio = collect_attempt_audio(turns)
-        audio_tuple = (data, mime) if any_audio else (None, None)
-    audio_note = (
-        "You have a recording from this task. You may comment on pronunciation only if it is audible."
-        if audio_tuple[0] and ai.supports_audio()
-        else "You do NOT have audio. Do not claim to have assessed pronunciation or intonation from sound."
-    )
+    audio_tuple = (None, None)
+    audio_note = "You do NOT have audio. Do not claim to have assessed pronunciation or intonation from sound."
     prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) Task 1 Role Play.
 
 {chr(10).join(blocks)}
@@ -370,14 +352,8 @@ def mark_extended(task: str, turns: list[dict], scheme: dict, *, ai=None, audio=
     if not student_turns:
         return _empty_extended(task)
     analyses = [analyse_text(t.get("text", ""), t.get("metrics")) for t in student_turns]
-    if audio is None:
-        last_bytes, last_mime, any_audio = collect_attempt_audio(student_turns)
-        audio = (last_bytes, last_mime) if any_audio else (None, None)
-    audio_note = (
-        "You have a recording from this task. Assess pronunciation/intonation only from that audio."
-        if audio and audio[0] and ai.supports_audio()
-        else "You do NOT have audio. Do not claim to have assessed pronunciation or intonation from sound."
-    )
+    audio = (None, None)
+    audio_note = "You do NOT have audio. Do not claim to have assessed pronunciation or intonation from sound."
     task_label = (
         "Task 2 Topic Talk (chosen Global Issues topic)"
         if task == "topic_talk"
@@ -439,13 +415,6 @@ def mark_attempt(attempt_id: int, payload: dict, *, persist: bool = True) -> dic
 
     audio_assessed = False
     pronunciation_assessed = False
-    if ai and ai.supports_audio():
-        for group in (roleplay_turns, topic_turns, picture_turns):
-            data, mime, any_audio = collect_attempt_audio(group)
-            if any_audio and data:
-                audio_assessed = True
-                pronunciation_assessed = True
-                break
 
     try:
         roleplay = mark_roleplay(roleplay_turns, scheme, ai=ai) if roleplay_turns else _empty_roleplay(scheme)

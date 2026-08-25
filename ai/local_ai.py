@@ -198,7 +198,7 @@ class GeminiProvider(AIProvider):
 
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str, timeout: int = 90):
+    def __init__(self, api_key: str, model: str, timeout: int = 45):
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
@@ -210,6 +210,13 @@ class GeminiProvider(AIProvider):
         return "gemini-3" in (model or self.model or "").lower()
 
     def _models_to_try(self) -> list[str]:
+        # Gemini 3.x free-tier quota is tiny and thinking often returns empty
+        # JSON, so exams never get marks. Prefer 2.5 Flash whenever 3.x is set.
+        if self._is_gemini3():
+            models = [name for name in GEMINI_FALLBACK_MODELS]
+            if self.model not in models:
+                models.append(self.model)
+            return models
         models = [self.model]
         for name in GEMINI_FALLBACK_MODELS:
             if name not in models:
@@ -557,7 +564,7 @@ def create_provider(config: dict) -> AIProvider:
     if choice == "ollama":
         return OllamaProvider(config.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"), config.get("OLLAMA_MODEL", "llama3.2"))
     if choice == "gemini":
-        return GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.6-flash"))
+        return GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-2.5-flash"))
     if choice == "openai":
         return OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
     if choice == "zai":
@@ -577,7 +584,7 @@ def create_provider(config: dict) -> AIProvider:
         config.get("ZAI_MODEL", "glm-4"),
         config.get("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4")
     )
-    gemini = GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.6-flash"))
+    gemini = GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-2.5-flash"))
     openai = OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
 
     # Try Z.AI first (primary provider)

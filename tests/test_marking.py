@@ -83,7 +83,7 @@ def test_invalid_json_does_not_become_a_score():
     assert ok
 
 
-def test_audio_marking_failure_falls_back_to_transcript():
+def test_marking_uses_transcript_not_audio():
     scheme = load_scheme()
     ai = FakeAIProvider(supports_audio_flag=True, fail_audio=True)
     result = mark_roleplay(
@@ -93,7 +93,7 @@ def test_audio_marking_failure_falls_back_to_transcript():
         audio=(b"not-real-audio", "audio/webm"),
     )
     assert result["score"] >= 1
-    assert ai.audio_calls >= 1
+    assert ai.audio_calls == 0
 
 
 def test_two_answers_produce_different_marking_evidence():
