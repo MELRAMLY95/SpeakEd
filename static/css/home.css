@@ -154,7 +154,7 @@
   position: absolute;
   inset: 0 0 auto;
   height: 3px;
-  background: linear-gradient(90deg, var(--brand), var(--accent), var(--warm), var(--brand));
+  background: linear-gradient(90deg, var(--wine), var(--gold), var(--purple), var(--wine));
   background-size: 300% 100%;
   animation: gradientMove 8s ease infinite;
 }
@@ -291,9 +291,9 @@
 .badge:hover { transform: translateY(-2px); }
 
 .badge-wine {
-  color: var(--brand);
+  color: var(--wine);
   background: var(--brand-soft);
-  border-color: color-mix(in srgb, var(--brand) 30%, transparent);
+  border-color: color-mix(in srgb, var(--wine) 30%, transparent);
 }
 .badge-gold {
   color: var(--warm);
@@ -301,9 +301,9 @@
   border-color: color-mix(in srgb, var(--warm) 34%, transparent);
 }
 .badge-purple {
-  color: var(--accent);
-  background: var(--accent-soft);
-  border-color: color-mix(in srgb, var(--accent) 32%, transparent);
+  color: var(--purple);
+  background: color-mix(in srgb, var(--purple) 12%, var(--surface));
+  border-color: color-mix(in srgb, var(--purple) 32%, transparent);
 }
 
 /* --- Keyframes ------------------------------------------------------------- */

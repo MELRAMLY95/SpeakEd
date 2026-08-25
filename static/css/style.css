@@ -9,8 +9,8 @@
   color-scheme: light dark;
 
   /* --- Typography ------------------------------------------------------- */
-  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-sans: "DM Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
 
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
@@ -49,63 +49,61 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-spring: cubic-bezier(0.34, 1.4, 0.64, 1);
 
-  /* --- Light palette ---------------------------------------------------- */
-  --bg: #fafafb;
-  --bg-ambient-a: rgba(91, 84, 232, 0.07);
-  --bg-ambient-b: rgba(15, 169, 160, 0.06);
+  /* --- Light palette (wine + gold) -------------------------------------- */
+  --bg: #f8fafc;
+  --bg-ambient-a: rgba(114, 47, 55, 0.08);
+  --bg-ambient-b: rgba(245, 158, 11, 0.08);
   --surface: #ffffff;
   --surface-2: #f4f4f8;
   --surface-3: #ebebf2;
   --surface-inset: #f7f7fa;
-  --border: #e5e5ed;
+  --border: #e2e8f0;
   --border-strong: #d3d3e0;
 
-  --ink: #14141b;
+  --ink: #1a1a2e;
   --ink-soft: #3f4049;
-  --muted: #6b6c7b;
+  --muted: #6b7280;
 
-  --brand: #5b54e8;
-  --brand-hover: #4a42de;
-  --brand-strong: #3a32c4;
+  --wine: #722F37;
+  --wine-dark: #4A1C22;
+  --wine-light: #9B3D46;
+  --wine-accent: #C17B82;
+  --gold: #f59e0b;
+  --gold-light: #fbbf24;
+
+  --brand: var(--wine);
+  --brand-hover: var(--wine-light);
+  --brand-strong: var(--wine-dark);
   --brand-contrast: #ffffff;
-  --brand-soft: #eeedfe;
-  --brand-ring: rgba(91, 84, 232, 0.28);
+  --brand-soft: #FFF5F5;
+  --brand-ring: rgba(114, 47, 55, 0.28);
 
-  --accent: #0fa9a0;
-  --accent-soft: #e2f6f4;
-  --warm: #e5920f;
-  --warm-soft: #fdf3e2;
-  --danger: #dc3b45;
-  --danger-soft: #fdeded;
-  --ok: #12a594;
-  --ok-soft: #e3f7f2;
+  --accent: var(--wine-accent);
+  --accent-soft: #f8ecee;
+  --warm: var(--gold);
+  --warm-soft: #fff7e8;
+  --danger: #ef4444;
+  --danger-soft: #fff5f5;
+  --ok: #10b981;
+  --ok-soft: #f0fff4;
 
   --shadow-sm: 0 1px 2px rgba(20, 20, 27, 0.06), 0 1px 3px rgba(20, 20, 27, 0.05);
-  --shadow: 0 4px 10px -2px rgba(20, 20, 27, 0.08), 0 2px 6px -2px rgba(20, 20, 27, 0.05);
-  --shadow-lg: 0 18px 40px -12px rgba(20, 20, 27, 0.16), 0 6px 14px -8px rgba(20, 20, 27, 0.1);
-  --shadow-xl: 0 36px 70px -20px rgba(20, 20, 27, 0.22);
-  --shadow-glow: 0 10px 30px -8px rgba(91, 84, 232, 0.5);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 36px 70px -20px rgba(26, 26, 46, 0.22);
+  --shadow-glow: 0 4px 20px rgba(114, 47, 55, 0.4);
 
-  --gradient-primary: linear-gradient(135deg, #6c65ff 0%, #4a42de 55%, #3a32c4 100%);
-  --gradient-accent: linear-gradient(135deg, #17c2b6 0%, #0fa9a0 100%);
-  --gradient-warm: linear-gradient(135deg, #f5b342 0%, #e5920f 100%);
-  --gradient-hero: linear-gradient(140deg, #191932 0%, #262457 45%, #3a32c4 100%);
-  --gradient-subtle: linear-gradient(180deg, #ffffff 0%, #f7f7fa 100%);
-  --gradient-text: linear-gradient(120deg, #5b54e8 0%, #0fa9a0 100%);
+  --gradient-primary: linear-gradient(135deg, #722F37 0%, #4A1C22 100%);
+  --gradient-accent: linear-gradient(135deg, #9B3D46 0%, #722F37 100%);
+  --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  --gradient-hero: linear-gradient(135deg, #1a1a2e 0%, #2C1C1E 50%, #722F37 100%);
+  --gradient-subtle: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  --gradient-text: linear-gradient(120deg, #722F37 0%, #9B3D46 55%, #d97706 100%);
 
-  /* --- Legacy aliases --------------------------------------------------- */
-  /* Older stylesheets reference these names. Mapping them here means every
-     page themes correctly, including in dark mode, without a rewrite. */
   --paper: var(--bg);
   --card: var(--surface);
   --line: var(--border);
   --exam: var(--bg);
-  --wine: var(--brand);
-  --wine-dark: var(--brand-strong);
-  --wine-light: var(--brand-hover);
-  --wine-accent: #8b84ff;
-  --gold: var(--warm);
-  --gold-light: #f5b342;
   --purple: #8b5cf6;
   --purple-light: #a78bfa;
   --blue: #3b82f6;
@@ -119,49 +117,48 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #09090d;
-    --bg-ambient-a: rgba(139, 132, 255, 0.12);
-    --bg-ambient-b: rgba(45, 212, 196, 0.08);
-    --surface: #121218;
-    --surface-2: #1a1a22;
-    --surface-3: #23232d;
-    --surface-inset: #16161d;
-    --border: #2a2a36;
-    --border-strong: #3a3a48;
+    --bg: #141018;
+    --bg-ambient-a: rgba(193, 123, 130, 0.14);
+    --bg-ambient-b: rgba(245, 158, 11, 0.08);
+    --surface: #1c161a;
+    --surface-2: #261c20;
+    --surface-3: #322428;
+    --surface-inset: #1a1418;
+    --border: #3a2c30;
+    --border-strong: #4a383c;
 
-    --ink: #ecedf3;
-    --ink-soft: #c2c3ce;
-    --muted: #8b8c9c;
+    --ink: #f4ecee;
+    --ink-soft: #d4c6c8;
+    --muted: #a8989c;
 
-    --brand: #8b84ff;
-    --brand-hover: #9e98ff;
-    --brand-strong: #b0aaff;
-    --brand-contrast: #0b0b12;
-    --brand-soft: #1d1b36;
-    --brand-ring: rgba(139, 132, 255, 0.36);
+    --wine: #c17b82;
+    --wine-dark: #e8b4b8;
+    --wine-light: #d49298;
+    --wine-accent: #e8c4c8;
+    --gold: #fbbf24;
+    --gold-light: #fcd34d;
 
-    --accent: #2dd4c4;
-    --accent-soft: #0e2c2a;
-    --warm: #f5b342;
+    --brand-contrast: #1a1014;
+    --brand-soft: #2a181c;
+    --brand-ring: rgba(193, 123, 130, 0.36);
+
+    --accent-soft: #2a1c20;
     --warm-soft: #2c2213;
-    --danger: #f2555f;
+    --danger: #f87171;
     --danger-soft: #2e1417;
-    --ok: #2cc9ae;
-    --ok-soft: #0e2a26;
+    --ok: #34d399;
+    --ok-soft: #10241c;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
     --shadow-lg: 0 20px 44px -14px rgba(0, 0, 0, 0.75);
     --shadow-xl: 0 40px 80px -24px rgba(0, 0, 0, 0.85);
-    --shadow-glow: 0 10px 34px -8px rgba(139, 132, 255, 0.45);
+    --shadow-glow: 0 10px 34px -8px rgba(114, 47, 55, 0.5);
 
-    --gradient-primary: linear-gradient(135deg, #8b84ff 0%, #6c65ff 55%, #5b54e8 100%);
-    --gradient-hero: linear-gradient(140deg, #0d0d18 0%, #1b1936 45%, #2f2a6b 100%);
-    --gradient-subtle: linear-gradient(180deg, #16161d 0%, #121218 100%);
-    --gradient-text: linear-gradient(120deg, #a49dff 0%, #2dd4c4 100%);
-
-    --wine-accent: #a49dff;
-    --gold-light: #f7c46a;
+    --gradient-primary: linear-gradient(135deg, #9B3D46 0%, #722F37 100%);
+    --gradient-hero: linear-gradient(135deg, #1a1a2e 0%, #2C1C1E 50%, #722F37 100%);
+    --gradient-subtle: linear-gradient(180deg, #261c20 0%, #1c161a 100%);
+    --gradient-text: linear-gradient(120deg, #e8b4b8 0%, #fbbf24 100%);
   }
 }
 
@@ -209,8 +206,8 @@ a:hover { color: var(--brand-hover); }
 
 h1, h2 {
   font-family: var(--font-display);
-  font-weight: 400;
-  letter-spacing: -0.015em;
+  font-weight: 640;
+  letter-spacing: -0.02em;
   line-height: 1.08;
   color: var(--ink);
   margin-block: 0 var(--s-4);
@@ -405,9 +402,7 @@ small, .text-sm { font-size: var(--text-sm); }
   text-decoration: none;
   font-family: var(--font-display);
   font-size: 1.5rem;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  background: var(--gradient-text);
+  font-weight: 640;
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -415,9 +410,9 @@ small, .text-sm { font-size: var(--text-sm); }
 }
 .brand:hover { transform: translateY(-1px); }
 .brand img {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
   box-shadow: var(--shadow-sm);
 }
 
@@ -533,7 +528,7 @@ small, .text-sm { font-size: var(--text-sm); }
   color: var(--brand-contrast);
   box-shadow: var(--shadow-glow);
 }
-.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 16px 38px -10px var(--brand-ring); }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 30px rgba(114, 47, 55, 0.5); }
 
 .btn-ghost {
   background: var(--surface);

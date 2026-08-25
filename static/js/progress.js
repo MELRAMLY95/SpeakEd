@@ -26,7 +26,7 @@ if (canvas) {
     const ink = token("--ink", "#14141b");
     const muted = token("--muted", "#6b6c7b");
     const border = token("--border", "#e5e5ed");
-    const brand = token("--brand", "#5b54e8");
+    const brand = token("--wine", "#722F37");
     const surface = token("--surface", "#ffffff");
 
     const padLeft = 44;
@@ -39,7 +39,7 @@ if (canvas) {
     ctx.clearRect(0, 0, cssWidth, cssHeight);
     ctx.fillStyle = surface;
     ctx.fillRect(0, 0, cssWidth, cssHeight);
-    ctx.font = "11px Inter, system-ui, sans-serif";
+    ctx.font = "11px \"DM Sans\", system-ui, sans-serif";
     ctx.textBaseline = "middle";
 
     // Horizontal grid with value labels.
@@ -60,7 +60,7 @@ if (canvas) {
     if (!scores.length) {
       ctx.fillStyle = muted;
       ctx.textAlign = "center";
-      ctx.font = "13px Inter, system-ui, sans-serif";
+      ctx.font = "13px \"DM Sans\", system-ui, sans-serif";
       ctx.fillText("Complete full exams to see your score trend.", cssWidth / 2, cssHeight / 2);
       return;
     }
@@ -117,7 +117,7 @@ if (canvas) {
     // Latest value called out above the final point.
     const lastIndex = scores.length - 1;
     ctx.fillStyle = ink;
-    ctx.font = "600 12px Inter, system-ui, sans-serif";
+    ctx.font = "600 12px \"DM Sans\", system-ui, sans-serif";
     ctx.textAlign = lastIndex === 0 ? "left" : "right";
     ctx.fillText(String(scores[lastIndex]), xFor(lastIndex), yFor(scores[lastIndex]) - 14);
   }
