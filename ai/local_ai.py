@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import urllib.error
 import urllib.request
 from typing import Any
@@ -8,11 +9,12 @@ from ai.ai_provider import AIMessage, AIProvider, _is_quota_error
 
 logger = logging.getLogger(__name__)
 
+# 2.0/2.5 Flash IDs have been retired. Google's 404s point at 3.5 Flash-Lite.
 GEMINI_FALLBACK_MODELS = (
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
     "gemini-2.5-flash",
-    "gemini-2.5-flash-lite",
-    "gemini-2.0-flash",
-    "gemini-2.0-flash-lite",
 )
 
 
@@ -210,18 +212,18 @@ class GeminiProvider(AIProvider):
         return "gemini-3" in (model or self.model or "").lower()
 
     def _models_to_try(self) -> list[str]:
-        # Gemini 3.x free-tier quota is tiny and thinking often returns empty
-        # JSON, so exams never get marks. Prefer 2.5 Flash whenever 3.x is set.
-        if self._is_gemini3():
-            models = [name for name in GEMINI_FALLBACK_MODELS]
-            if self.model not in models:
-                models.append(self.model)
-            return models
         models = [self.model]
         for name in GEMINI_FALLBACK_MODELS:
             if name not in models:
                 models.append(name)
         return models
+
+    @staticmethod
+    def _suggested_model(exc: Exception) -> str | None:
+        match = re.search(r"use models/([a-z0-9._-]+)", str(exc), re.I)
+        if not match:
+            return None
+        return match.group(1).strip() or None
 
     def _generation_config_for(
         self, model: str, *, temperature: float, max_tokens: int, json_mode: bool
@@ -283,7 +285,13 @@ class GeminiProvider(AIProvider):
     ) -> str:
         last_error: Exception | None = None
         tried: list[str] = []
-        for model in self._models_to_try():
+        models = self._models_to_try()
+        i = 0
+        while i < len(models):
+            model = models[i]
+            i += 1
+            if model in tried:
+                continue
             tried.append(model)
             payload: dict[str, Any] = {
                 "contents": contents,
@@ -301,6 +309,9 @@ class GeminiProvider(AIProvider):
                 return text
             except RuntimeError as exc:
                 last_error = exc
+                suggested = self._suggested_model(exc)
+                if suggested and suggested not in models:
+                    models.append(suggested)
                 if self._should_fallback(exc):
                     logger.warning("Gemini model %s failed: %s", model, exc)
                     continue
@@ -564,7 +575,7 @@ def create_provider(config: dict) -> AIProvider:
     if choice == "ollama":
         return OllamaProvider(config.get("OLLAMA_BASE_URL", "http://127.0.0.1:11434"), config.get("OLLAMA_MODEL", "llama3.2"))
     if choice == "gemini":
-        return GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-2.5-flash"))
+        return GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.5-flash-lite"))
     if choice == "openai":
         return OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
     if choice == "zai":
@@ -584,7 +595,7 @@ def create_provider(config: dict) -> AIProvider:
         config.get("ZAI_MODEL", "glm-4"),
         config.get("ZAI_BASE_URL", "https://api.z.ai/api/paas/v4")
     )
-    gemini = GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-2.5-flash"))
+    gemini = GeminiProvider(config.get("GEMINI_API_KEY", ""), config.get("GEMINI_MODEL", "gemini-3.5-flash-lite"))
     openai = OpenAIProvider(config.get("OPENAI_API_KEY", ""), config.get("OPENAI_MODEL", "gpt-4o-mini"))
 
     # Try Z.AI first (primary provider)

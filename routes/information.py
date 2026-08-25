@@ -34,7 +34,10 @@ def _plain_text(information: str) -> str:
 def _safe_ai_error(exc: Exception) -> str:
     text = str(exc)
     text = re.sub(r"key=[^&\s]+", "key=REDACTED", text, flags=re.I)
-    return text[:400]
+    message = re.search(r'"message":\s*"([^"]+)"', text)
+    if message:
+        return message.group(1)[:300]
+    return text[:300]
 
 
 def _manual_template(topic: str) -> str:
