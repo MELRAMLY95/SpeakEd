@@ -1,4 +1,4 @@
-from flask import g, jsonify, redirect, render_template, request, url_for
+from flask import flash, g, jsonify, redirect, render_template, request, url_for
 import json
 import logging
 
@@ -159,9 +159,13 @@ def turn(attempt_id):
 @exam_bp.route("/exam/<int:attempt_id>/retry-marking", methods=["POST"])
 @login_required
 def retry_marking(attempt_id):
-    if _owned(attempt_id) is None:
+    attempt = _owned(attempt_id)
+    if attempt is None:
         return redirect(url_for("dashboard.home"))
-    engine.retry_marking(attempt_id, g.user["id"])
+    finished = engine.retry_marking(attempt_id, g.user["id"])
+    if finished.get("error") and not finished.get("marking"):
+        flash(finished["error"], "error")
+        return redirect(url_for("progress.attempt", attempt_id=attempt_id))
     return redirect(url_for("exam.results", attempt_id=attempt_id))
 
 
@@ -194,7 +198,14 @@ def results(attempt_id):
             "examiner_comments": feedback_row["examiner_comments"],
         }
     state = engine.state(attempt_id, g.user["id"])
-    return render_template("exam/results.html", attempt=attempt, marking=marking, feedback=feedback, state=state)
+    return render_template(
+        "exam/results.html",
+        attempt=attempt,
+        marking=marking,
+        feedback=feedback,
+        state=state,
+        needs_marking=engine.needs_marking(attempt),
+    )
 
 
 @exam_bp.route("/exam/<int:attempt_id>/feedback")

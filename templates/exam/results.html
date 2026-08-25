@@ -21,7 +21,7 @@
   <h1>4XES2 speaking practice result</h1>
   <p class="notice">{{ disclaimer }}</p>
 
-  {% if attempt.status == 'marking_unavailable' and not has_scores %}
+  {% if needs_marking %}
     <div class="result-block result-block-warn">
       <h2>Marking unavailable</h2>
       <p>The AI examiner could not complete marking. No score was recorded.</p>

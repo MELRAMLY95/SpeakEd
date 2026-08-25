@@ -1,18 +1,37 @@
 import json
 
-from flask import abort, g, render_template
+from flask import abort, g, render_template, url_for
 
+from ai.examiner import ExamEngine
 from database.database import query_all, query_one
 from routes import progress_bp
 from routes.auth import login_required
 from routes.dashboard import _stats
+
+engine = ExamEngine()
+
+
+def _as_dict(row) -> dict:
+    return dict(row) if row is not None else {}
+
+
+def _with_marking_flag(row) -> dict:
+    data = _as_dict(row)
+    data["needs_marking"] = engine.needs_marking(row)
+    data["type_label"] = (data.get("exam_type") or "").replace("_", " ")
+    return data
 
 
 @progress_bp.route("/progress")
 @login_required
 def home():
     stats = _stats(g.user["id"])
-    return render_template("progress/progress.html", stats=stats)
+    rows = query_all(
+        "SELECT * FROM attempts WHERE user_id = ? ORDER BY started_at DESC",
+        (g.user["id"],),
+    )
+    unmarked = [_with_marking_flag(row) for row in rows if engine.needs_marking(row)]
+    return render_template("progress/progress.html", stats=stats, unmarked=unmarked)
 
 
 @progress_bp.route("/history")
@@ -22,7 +41,8 @@ def history():
         "SELECT * FROM attempts WHERE user_id = ? ORDER BY started_at DESC",
         (g.user["id"],),
     )
-    return render_template("progress/history.html", attempts=rows)
+    attempts = [_with_marking_flag(row) for row in rows]
+    return render_template("progress/history.html", attempts=attempts)
 
 
 @progress_bp.route("/history/<int:attempt_id>")
@@ -47,11 +67,13 @@ def attempt(attempt_id):
             "recommendations": json.loads(feedback_row["recommendations_json"]),
             "examiner_comments": feedback_row["examiner_comments"],
         }
+    view = _with_marking_flag(row)
     return render_template(
         "progress/attempt.html",
-        attempt=row,
+        attempt=view,
         transcripts=transcripts,
         marking=marking,
         feedback=feedback,
         self_eval=self_eval,
+        retry_url=url_for("exam.retry_marking", attempt_id=attempt_id),
     )

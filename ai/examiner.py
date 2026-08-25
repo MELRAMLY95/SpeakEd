@@ -323,13 +323,48 @@ class ExamEngine:
 
     def retry_marking(self, attempt_id: int, user_id: int) -> dict:
         attempt = self._get(attempt_id, user_id)
-        if attempt["status"] not in {"marking_unavailable", "completed"}:
+        if not self.needs_marking(attempt):
             return {"error": "This attempt cannot be re-marked yet.", "retry": False}
         execute(
             "UPDATE attempts SET status='in_progress', stage='complete' WHERE id=? AND user_id=?",
             (attempt_id, user_id),
         )
         return self.finish(attempt_id, user_id)
+
+    def needs_marking(self, attempt, *, has_student_speech: bool | None = None) -> bool:
+        """True when a finished speaking attempt has no saved marks.
+
+        Covers role play, topic talk, picture conversation, and the full exam,
+        including attempts left in_progress after a timeout during finish().
+        """
+        if attempt is None:
+            return False
+        if attempt["exam_type"] not in {"full", "roleplay", "topic_talk", "picture"}:
+            return False
+        if any(
+            attempt[key] is not None
+            for key in ("roleplay_score", "topic_talk_score", "picture_score", "total_score")
+        ):
+            return False
+        finished = attempt["status"] in {"marking_unavailable", "completed"} or attempt["stage"] == "complete"
+        if not finished:
+            return False
+        if has_student_speech is None:
+            has_student_speech = self._has_student_speech(attempt)
+        return bool(has_student_speech)
+
+    def _has_student_speech(self, attempt) -> bool:
+        row = query_one(
+            "SELECT COUNT(*) AS n FROM transcripts WHERE attempt_id = ? AND speaker = 'student'",
+            (attempt["id"],),
+        )
+        if row and int(row["n"] or 0) > 0:
+            return True
+        payload = _payload(attempt)
+        return any(
+            t.get("speaker") == "student" and (t.get("text") or "").strip()
+            for t in payload.get("turns") or []
+        )
 
     def _partial_total(self, exam_type: str, marking: dict) -> int:
         return {

@@ -24,4 +24,26 @@
   </ul>
   <p><a class="btn btn-primary" href="{{ url_for('progress.history') }}">View all attempts</a></p>
 </section>
+{% if unmarked %}
+<section class="wrap">
+  <h2>Marks not generated</h2>
+  <p class="lead">These speaking attempts finished without a score. Retry marking when the AI examiner is available.</p>
+  <ul class="unmarked-list">
+    {% for row in unmarked %}
+      <li>
+        <div>
+          <strong>{{ row.type_label }}</strong>
+          <span>{{ row.mode }} · {{ row.started_at[:16].replace('T', ' ') }}</span>
+        </div>
+        <div class="history-actions">
+          <a class="btn btn-ghost btn-sm" href="{{ url_for('progress.attempt', attempt_id=row.id) }}">View</a>
+          <form method="post" action="{{ url_for('exam.retry_marking', attempt_id=row.id) }}">
+            <button class="btn btn-primary btn-sm" type="submit">Retry marking</button>
+          </form>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+</section>
+{% endif %}
 {% endblock %}

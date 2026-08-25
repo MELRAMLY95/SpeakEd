@@ -26,8 +26,17 @@
           <td>{{ row.started_at[:16].replace('T', ' ') }}</td>
           <td>{{ row.exam_type }}</td>
           <td>{{ row.mode }}</td>
-          <td><strong>{{ row.total_score if row.total_score is not none else row.status }}</strong></td>
-          <td><a class="btn btn-ghost" href="{{ url_for('progress.attempt', attempt_id=row.id) }}">View</a></td>
+          <td><strong>{% if row.needs_marking %}Marks pending{% elif row.total_score is not none %}{{ row.total_score }}{% else %}{{ row.status }}{% endif %}</strong></td>
+          <td>
+            <div class="history-actions">
+              <a class="btn btn-ghost btn-sm" href="{{ url_for('progress.attempt', attempt_id=row.id) }}">View</a>
+              {% if row.needs_marking %}
+                <form method="post" action="{{ url_for('exam.retry_marking', attempt_id=row.id) }}">
+                  <button class="btn btn-primary btn-sm" type="submit">Retry marking</button>
+                </form>
+              {% endif %}
+            </div>
+          </td>
         </tr>
       {% endfor %}
     </tbody>
