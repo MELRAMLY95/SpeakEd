@@ -143,11 +143,11 @@
     --brand-ring: rgba(193, 123, 130, 0.36);
 
     --accent-soft: #2a1c20;
-    --warm-soft: #2c2213;
+    --warm-soft: #2a2218;
     --danger: #f87171;
     --danger-soft: #2e1417;
     --ok: #34d399;
-    --ok-soft: #10241c;
+    --ok-soft: #1c2420;
 
     --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
     --shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
@@ -158,7 +158,7 @@
     --gradient-primary: linear-gradient(135deg, #9B3D46 0%, #722F37 100%);
     --gradient-hero: linear-gradient(135deg, #1a1a2e 0%, #2C1C1E 50%, #722F37 100%);
     --gradient-subtle: linear-gradient(180deg, #261c20 0%, #1c161a 100%);
-    --gradient-text: linear-gradient(120deg, #e8b4b8 0%, #fbbf24 100%);
+    --gradient-text: linear-gradient(120deg, #e8b4b8 0%, #c17b82 100%);
   }
 }
 
@@ -666,8 +666,8 @@ label.focused { color: var(--brand); }
 }
 
 .notice {
-  background: var(--warm-soft);
-  border: 1px solid color-mix(in srgb, var(--warm) 40%, transparent);
+  background: var(--brand-soft);
+  border: 1px solid color-mix(in srgb, var(--wine) 28%, transparent);
   color: var(--ink);
   padding: var(--s-3) var(--s-4);
   border-radius: var(--r-sm);
