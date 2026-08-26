@@ -377,6 +377,9 @@ class GeminiProvider(AIProvider):
     def supports_audio(self) -> bool:
         return bool(self.api_key)
 
+    def supports_images(self) -> bool:
+        return bool(self.api_key)
+
     def generate_with_audio(
         self,
         prompt: str,

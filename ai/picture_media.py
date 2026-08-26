@@ -30,6 +30,68 @@ class PictureLoadError(Exception):
     pass
 
 
+_TOPIC_SVG = {
+    "homes": "/static/images/pictures/homes.svg",
+    "tourism": "/static/images/pictures/tourism.svg",
+    "school": "/static/images/pictures/school.svg",
+    "work": "/static/images/pictures/work.svg",
+}
+
+_TITLE_TOPICS = (
+    ("home", "homes"),
+    ("living", "homes"),
+    ("tourism", "tourism"),
+    ("travel", "tourism"),
+    ("holiday", "tourism"),
+    ("school", "school"),
+    ("educat", "school"),
+    ("learn", "school"),
+    ("work", "work"),
+    ("career", "work"),
+    ("employ", "work"),
+)
+
+
+def _static_url(path: Path) -> str:
+    return "/" + path.relative_to(BASE_DIR).as_posix()
+
+
+def browser_picture_src(ref: str | None, *, title: str = "") -> str:
+    """Return a same-origin image URL that exists on disk.
+
+    Prompt cards historically pointed at .jpg files that were never shipped;
+    the repo only has SVG scene cards. External Picsum URLs are also mapped
+    back to those local files so the exam photo still shows if the CDN fails.
+    """
+    value = (ref or "").strip()
+    lowered = value.lower()
+    for topic, svg in _TOPIC_SVG.items():
+        if topic in lowered:
+            disk = BASE_DIR / svg.lstrip("/")
+            if disk.is_file():
+                return svg
+    title_l = (title or "").lower()
+    for needle, topic in _TITLE_TOPICS:
+        if needle in title_l:
+            svg = _TOPIC_SVG[topic]
+            disk = BASE_DIR / svg.lstrip("/")
+            if disk.is_file():
+                return svg
+    if not value or value.startswith(("http://", "https://")):
+        return value
+    try:
+        path = _local_path(value)
+    except PictureLoadError:
+        return value
+    if path.is_file():
+        return _static_url(path)
+    if path.suffix.lower() in {".jpg", ".jpeg", ".png"}:
+        svg = path.with_suffix(".svg")
+        if svg.is_file():
+            return _static_url(svg)
+    return value
+
+
 def load_picture_media(ref: str | None) -> tuple[bytes, str]:
     """Return (bytes, mime) for a stored path or http(s) URL.
 

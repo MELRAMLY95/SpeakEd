@@ -19,9 +19,11 @@ class FakeAIProvider(AIProvider):
         transcribe_empty: bool = False,
         fail_feedback: bool = False,
         fail_audio: bool = False,
+        fail_images: bool = False,
         timeout: bool = False,
         http_error: int | None = None,
         out_of_range_once: bool = False,
+        supports_images_flag: bool = True,
     ):
         self.fail = fail
         self.invalid_json = invalid_json
@@ -30,9 +32,11 @@ class FakeAIProvider(AIProvider):
         self.transcribe_empty = transcribe_empty
         self.fail_feedback = fail_feedback
         self.fail_audio = fail_audio
+        self.fail_images = fail_images
         self.timeout = timeout
         self.http_error = http_error
         self.out_of_range_once = out_of_range_once
+        self.supports_images_flag = supports_images_flag
         self.prompts: list[str] = []
         self.audio_calls = 0
         self.json_calls = 0
@@ -46,6 +50,9 @@ class FakeAIProvider(AIProvider):
 
     def supports_audio(self) -> bool:
         return self.supports_audio_flag and not self.fail
+
+    def supports_images(self) -> bool:
+        return self.supports_images_flag and not self.fail
 
     def generate(self, messages: list[AIMessage], *, json_mode: bool = False, temperature: float = 0.2, max_tokens: int = 800) -> str:
         prompt = messages[-1].content if messages else ""
@@ -90,6 +97,8 @@ class FakeAIProvider(AIProvider):
         return self.transcribe_audio(audio_bytes, mime_type)
 
     def generate_with_media(self, prompt: str, media: list, *, system: str = "", json_mode: bool = False, temperature: float = 0.2, max_tokens: int = 800) -> str:
+        if self.fail_images:
+            raise RuntimeError("zai does not accept image input")
         self.last_media = []
         for data, mime in media or []:
             item = {"mime": mime, "nbytes": len(data or b"")}

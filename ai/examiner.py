@@ -3,6 +3,7 @@ import logging
 from datetime import datetime, timezone
 
 from ai.prompts import PromptBank
+from ai.picture_media import browser_picture_src
 from ai.speech import cleanup_attempt_audio, save_turn_audio, summarise_metrics
 from ai.voice import examiner_voice_payload
 from ai.ai_provider import get_ai
@@ -85,6 +86,9 @@ class ExamEngine:
             else:
                 avoid = payload.get("roleplay", {}).get("topic_area")
                 payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
+            picture = dict(payload["picture"])
+            picture["image"] = browser_picture_src(picture.get("image"), title=picture.get("title") or "")
+            payload["picture"] = picture
         if exam_type in {"full", "topic_talk"}:
             title = topic_title.strip() or "your chosen Global Issues topic"
             payload["topic_followups"] = self.bank.choose_topic_followups(user_id, title)
@@ -113,6 +117,10 @@ class ExamEngine:
         stage = attempt["stage"]
         prompt = self._current_prompt(payload, stage)
         student_count = sum(1 for t in payload.get("turns", []) if t.get("stage") == stage and t.get("speaker") == "student")
+        picture = payload.get("picture")
+        if isinstance(picture, dict):
+            picture = dict(picture)
+            picture["image"] = browser_picture_src(picture.get("image"), title=picture.get("title") or "")
         return {
             "attempt_id": attempt["id"],
             "exam_type": attempt["exam_type"],
@@ -125,7 +133,7 @@ class ExamEngine:
             "voice": examiner_voice_payload(prompt.get("spoken") or "") if prompt else None,
             "cards": {
                 "roleplay": payload.get("roleplay"),
-                "picture": payload.get("picture"),
+                "picture": picture,
                 "topic_title": payload.get("topic_title"),
                 "topic_notes": payload.get("topic_notes"),
             },
@@ -661,7 +669,10 @@ Return JSON: {{"prompt_id": "{options[0]['id']}", "reason": "short reason"}}""",
             "topic_title": payload.get("topic_title") or "",
             "picture_title": (payload.get("picture") or {}).get("title") or "",
             "picture_intro": (payload.get("picture") or {}).get("examiner_intro") or "",
-            "picture_image": (payload.get("picture") or {}).get("image") or "",
+            "picture_image": browser_picture_src(
+                (payload.get("picture") or {}).get("image") or "",
+                title=(payload.get("picture") or {}).get("title") or "",
+            ),
         }
 
     def _practice_note(self, text: str, stage: str, prompt: dict | None = None) -> str:

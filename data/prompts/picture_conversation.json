@@ -7,7 +7,7 @@
       "topic_area": "Myself and others",
       "difficulty": "medium",
       "meaning_key": "homes and living spaces",
-      "image": "/static/images/pictures/homes.jpg",
+      "image": "/static/images/pictures/homes.svg",
       "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of homes and living spaces.",
       "examiner_prompts": [
         {"id": "pt01a", "spoken": "Describe the photo in as much detail as possible.", "type": "describe"},
@@ -25,7 +25,7 @@
       "topic_area": "Travel and tourism",
       "difficulty": "medium",
       "meaning_key": "tourist activities holiday",
-      "image": "/static/images/pictures/tourism.jpg",
+      "image": "/static/images/pictures/tourism.svg",
       "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of travel and tourism.",
       "examiner_prompts": [
         {"id": "pt02a", "spoken": "Describe the photo, focusing on what you can see and the atmosphere it suggests.", "type": "describe"},
@@ -43,7 +43,7 @@
       "topic_area": "Education",
       "difficulty": "medium",
       "meaning_key": "school life classroom learning",
-      "image": "/static/images/pictures/school.jpg",
+      "image": "/static/images/pictures/school.svg",
       "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of education and learning.",
       "examiner_prompts": [
         {"id": "pt03a", "spoken": "Describe the photo, paying attention to the activities and relationships you can observe.", "type": "describe"},
@@ -61,7 +61,7 @@
       "topic_area": "Employment",
       "difficulty": "medium",
       "meaning_key": "people at work jobs careers",
-      "image": "/static/images/pictures/work.jpg",
+      "image": "/static/images/pictures/work.svg",
       "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of working life and careers.",
       "examiner_prompts": [
         {"id": "pt04a", "spoken": "Describe the photo, focusing on the people, their activities, and the work environment you can see.", "type": "describe"},

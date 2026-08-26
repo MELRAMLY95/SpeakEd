@@ -76,26 +76,6 @@ def room(attempt_id):
     if attempt["status"] == "completed":
         return redirect(url_for("exam.results", attempt_id=attempt_id))
     state = engine.state(attempt_id, g.user["id"])
-    
-    # Inject dynamic image URLs for picture conversation
-    if state and state.get("stage") == "picture" and state.get("cards"):
-        try:
-            picture_card = state["cards"].get("picture")
-            if picture_card and isinstance(picture_card, dict) and picture_card.get("image"):
-                # Extract topic from image path or use the picture card's topic
-                original_image = picture_card["image"]
-                if "homes" in original_image:
-                    picture_card["image"] = image_fetcher.get_image_for_topic("homes")
-                elif "tourism" in original_image:
-                    picture_card["image"] = image_fetcher.get_image_for_topic("tourism")
-                elif "school" in original_image:
-                    picture_card["image"] = image_fetcher.get_image_for_topic("school")
-                elif "work" in original_image:
-                    picture_card["image"] = image_fetcher.get_image_for_topic("work")
-        except Exception:
-            logger.exception("Error injecting image URLs")
-            # Continue without image injection
-    
     return render_template(template, attempt=attempt, state=state)
 
 

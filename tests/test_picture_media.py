@@ -2,8 +2,8 @@ import json
 from unittest.mock import patch
 
 from ai.local_ai import GeminiProvider
-from ai.marking import MarkingUnavailable, load_scheme, mark_extended
-from ai.picture_media import load_picture_media, svg_to_png
+from ai.marking import load_scheme, mark_attempt, mark_extended
+from ai.picture_media import browser_picture_src, load_picture_media, svg_to_png
 from tests.fake_ai import FakeAIProvider
 
 
@@ -12,6 +12,23 @@ def test_homes_svg_loads_as_nonempty_png():
     assert mime == "image/png"
     assert data.startswith(b"\x89PNG")
     assert len(data) > 100
+
+
+def test_browser_src_maps_missing_jpg_to_svg():
+    assert browser_picture_src("/static/images/pictures/homes.jpg") == "/static/images/pictures/homes.svg"
+    assert browser_picture_src("/static/images/pictures/tourism.jpg") == "/static/images/pictures/tourism.svg"
+
+
+def test_browser_src_maps_picsum_url_using_title():
+    url = "https://picsum.photos/1920/1080?random=living-room-548"
+    assert browser_picture_src(url, title="Homes and Living Spaces") == "/static/images/pictures/homes.svg"
+    assert browser_picture_src(url, title="Education and Learning") == "/static/images/pictures/school.svg"
+
+
+def test_missing_jpg_falls_back_to_svg_for_marking():
+    data, mime = load_picture_media("/static/images/pictures/homes.jpg")
+    assert mime == "image/png"
+    assert data.startswith(b"\x89PNG")
 
 
 def test_missing_picture_fails_safely():
@@ -66,19 +83,15 @@ def test_marking_attaches_picture_bytes():
 def test_marking_fails_safely_when_picture_missing():
     scheme = load_scheme()
     ai = FakeAIProvider()
-    try:
-        mark_extended(
-            "picture",
-            [{"text": "I can see a house.", "question": "Describe the photo."}],
-            scheme,
-            ai=ai,
-            context={"picture_image": "/static/images/pictures/missing.svg"},
-        )
-        ok = False
-    except MarkingUnavailable as exc:
-        ok = True
-        assert "could not be loaded" in str(exc).lower()
-    assert ok
+    result = mark_extended(
+        "picture",
+        [{"text": "I can see a house.", "question": "Describe the photo."}],
+        scheme,
+        ai=ai,
+        context={"picture_image": "/static/images/pictures/missing.svg", "picture_title": "Unknown scene"},
+    )
+    assert result["score"] >= 0
+    assert result["image_assessed"] is False
     assert ai.image_calls == 0
 
 
@@ -114,3 +127,72 @@ def test_gemini_parts_include_png_inline_data():
     assert parts[1]["inline_data"]["mime_type"] == "image/png"
     assert len(parts[1]["inline_data"]["data"]) > 50
     assert "test-key" not in json.dumps(captured["body"])
+
+
+def test_picture_marks_when_provider_rejects_images():
+    scheme = load_scheme()
+    ai = FakeAIProvider(fail_images=True)
+    result = mark_extended(
+        "picture",
+        [{"text": "I can see a house with a red roof and a garden.", "question": "Describe the photo."}],
+        scheme,
+        ai=ai,
+        context={
+            "picture_title": "Homes and Living Spaces",
+            "picture_intro": "Look at the picture.",
+            "picture_image": "/static/images/pictures/homes.svg",
+        },
+    )
+    assert result["score"] >= 0
+    assert result.get("unavailable") is not True
+    assert result["image_assessed"] is False
+
+
+def test_picture_marks_when_provider_has_no_vision():
+    scheme = load_scheme()
+    ai = FakeAIProvider(supports_images_flag=False)
+    result = mark_extended(
+        "picture",
+        [{"text": "I can see a house with a red roof and a garden.", "question": "Describe the photo."}],
+        scheme,
+        ai=ai,
+        context={
+            "picture_title": "Homes and Living Spaces",
+            "picture_image": "/static/images/pictures/homes.svg",
+        },
+    )
+    assert result["score"] >= 0
+    assert result["image_assessed"] is False
+    assert ai.image_calls == 0
+
+
+def test_full_exam_marks_without_vision(app, monkeypatch):
+    fake = FakeAIProvider(supports_images_flag=False)
+    monkeypatch.setattr("ai.marking.get_ai", lambda: fake)
+    monkeypatch.setattr("ai.feedback.get_ai", lambda: fake)
+    with app.app_context():
+        result = mark_attempt(
+            1,
+            {
+                "exam_type": "full",
+                "roleplay_student_turns": [
+                    {"text": "I go to the cinema twice a month with my sister.", "question": "How often do you go?"}
+                ],
+                "topic_turns": [
+                    {"text": "Plastic pollution harms fish and I think shops should use less packaging.", "question": "Tell me about your topic."}
+                ],
+                "picture_turns": [
+                    {"text": "I can see a house with a garden and two windows.", "question": "Describe the photo."}
+                ],
+                "topic_title": "Plastic pollution",
+                "picture_title": "Homes and Living Spaces",
+                "picture_image": "/static/images/pictures/homes.jpg",
+            },
+            persist=False,
+        )
+    assert result["unavailable"] is False
+    assert result["total"] is not None
+    assert 0 <= result["total"] <= 50
+    assert result["roleplay"]["score"] is not None
+    assert result["topic_talk"]["score"] is not None
+    assert result["picture"]["score"] is not None

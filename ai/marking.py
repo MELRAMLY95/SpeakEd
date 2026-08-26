@@ -266,9 +266,12 @@ def _is_non_retryable_marking(exc: Exception) -> bool:
 
 def _call_json(ai, prompt: str, system: str, max_tokens: int, audio: tuple[bytes | None, str | None], images=None, require_images: bool = False):
     images = [(data, mime) for data, mime in (images or []) if data]
+    if images and not getattr(ai, "supports_images", lambda: False)():
+        images = []
     audio_bytes, mime = audio
     media: list[tuple[bytes, str]] = []
     audio_used = False
+    images_used = False
     if (
         audio_bytes
         and ai.supports_audio()
@@ -285,7 +288,7 @@ def _call_json(ai, prompt: str, system: str, max_tokens: int, audio: tuple[bytes
                 system=system,
                 max_tokens=max_tokens,
                 temperature=0.1,
-            ), audio_used
+            ), audio_used, bool(images)
         except Exception as exc:
             if require_images and images:
                 raise
@@ -294,7 +297,7 @@ def _call_json(ai, prompt: str, system: str, max_tokens: int, audio: tuple[bytes
                 audio_used = False
             else:
                 logger.warning("Media marking failed; using the transcript: %s", exc)
-    return ai.generate_json(prompt, system=system, max_tokens=max_tokens, temperature=0.1), False
+    return ai.generate_json(prompt, system=system, max_tokens=max_tokens, temperature=0.1), False, False
 
 
 def _json_with_range_retry(ai, prompt: str, system: str, max_tokens: int, audio, parse, images=None, require_images: bool = False):
@@ -310,10 +313,10 @@ def _json_with_range_retry(ai, prompt: str, system: str, max_tokens: int, audio,
                 "Do not invent student words or scores."
             )
         try:
-            raw, audio_used = _call_json(
+            raw, audio_used, images_used = _call_json(
                 ai, text, system, max_tokens, audio, images=images, require_images=require_images
             )
-            return parse(raw), audio_used
+            return parse(raw), audio_used, images_used
         except MarkingUnavailable as exc:
             last_exc = exc
             if attempt == 0:
@@ -444,7 +447,7 @@ If a student response is empty, award 0 for that turn.
 Return JSON:
 {{"prompt_marks": [{{"prompt_index": 1, "mark": 0, "reasoning": "one sentence citing the descriptor", "evidence": ["short phrase from the student"], "strengths": ["specific strength"], "weaknesses": ["specific weakness"], "improvements": ["specific action"]}}]}}
 Include one object per TURN, in order. Each mark must be the integer 0, 1, or 2."""
-    prompt_marks, audio_used = _json_with_range_retry(
+    prompt_marks, audio_used, _images_used = _json_with_range_retry(
         ai,
         prompt,
         EXAMINER_SYSTEM,
@@ -499,22 +502,40 @@ def mark_extended(task: str, turns: list[dict], scheme: dict, *, ai=None, audio=
     if task == "topic_talk":
         context_block = f"CHOSEN TOPIC: {context.get('topic_title') or '(not recorded)'}\n"
     else:
-        from ai.picture_media import PictureLoadError, load_picture_media
+        from ai.picture_media import PictureLoadError, browser_picture_src, load_picture_media
+
+        image_ref = browser_picture_src(
+            context.get("picture_image"),
+            title=context.get("picture_title") or "",
+        )
         try:
-            img_bytes, img_mime = load_picture_media(context.get("picture_image"))
+            img_bytes, img_mime = load_picture_media(image_ref or context.get("picture_image"))
+            images = [(img_bytes, img_mime)]
         except PictureLoadError as exc:
-            raise MarkingUnavailable(f"The picture could not be loaded for marking. {exc}") from exc
-        images = [(img_bytes, img_mime)]
-        require_images = True
-        context_block = (
+            logger.warning("Picture was not attached for marking: %s", exc)
+            images = []
+        if images and not getattr(ai, "supports_images", lambda: False)():
+            images = []
+        picture_heading = (
             f"PICTURE TASK: {context.get('picture_title') or '(not recorded)'}\n"
             f"EXAMINER INTRO: {context.get('picture_intro') or '(not recorded)'}\n"
-            "The actual picture is attached as image data in this request.\n"
-            "You are assessing the student's spoken response in relation to the supplied picture. "
-            "Use the actual image as visual context. Do not invent visual details.\n"
-            "Distinguish: (1) what is actually visible in the image, (2) what the student actually said, "
-            "(3) what the mark scheme requires. Never give credit for something the student did not say.\n"
         )
+        if images:
+            context_block = (
+                picture_heading
+                + "The actual picture is attached as image data in this request.\n"
+                "You are assessing the student's spoken response in relation to the supplied picture. "
+                "Use the actual image as visual context. Do not invent visual details.\n"
+                "Distinguish: (1) what is actually visible in the image, (2) what the student actually said, "
+                "(3) what the mark scheme requires. Never give credit for something the student did not say.\n"
+            )
+        else:
+            context_block = (
+                picture_heading
+                + "The picture file could not be attached to this request. "
+                "Mark from the student's spoken words and the picture title/intro above. "
+                "Do not invent visual details that the student did not mention.\n"
+            )
     prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) {task_label} as an official speaking examiner.
 
 {context_block}
@@ -537,7 +558,7 @@ If there is no student speech, both scores must be 0.
 Return JSON:
 {{"communication_score": 0, "linguistic_score": 0, "reasoning": "one or two sentences citing the descriptors", "evidence": ["short supporting phrase from the student"], "strengths": ["specific strength"], "weaknesses": ["specific weakness"], "improvements": ["specific action"]}}
 communication_score must be an integer 0-12. linguistic_score must be an integer 0-8."""
-    parsed, audio_used = _json_with_range_retry(
+    parsed, audio_used, images_used = _json_with_range_retry(
         ai,
         prompt,
         EXAMINER_SYSTEM,
@@ -549,7 +570,7 @@ communication_score must be an integer 0-12. linguistic_score must be an integer
     )
     comm, ling, extra = parsed
     extra["audio_assessed"] = audio_used
-    extra["image_assessed"] = bool(images)
+    extra["image_assessed"] = bool(images_used)
     return _extended_result(task, grid, comm, ling, analyses, extra)
 
 

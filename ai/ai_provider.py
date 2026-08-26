@@ -94,6 +94,9 @@ class AIProvider(ABC):
     def supports_audio(self) -> bool:
         return False
 
+    def supports_images(self) -> bool:
+        return False
+
     def generate_with_audio(
         self,
         prompt: str,
