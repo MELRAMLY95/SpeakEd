@@ -1,4 +1,4 @@
-from ai.marking import analyse_text, mark_attempt, mark_roleplay, load_scheme, marking_unavailable
+from ai.marking import MarkingUnavailable, analyse_text, mark_attempt, mark_roleplay, load_scheme, marking_unavailable
 from tests.fake_ai import FakeAIProvider
 
 
@@ -64,12 +64,13 @@ def test_provider_failure_does_not_fabricate_score():
     try:
         mark_roleplay([{"text": "I go to the cinema twice a month with my sister."}], scheme, ai=ai)
         raised = False
-    except Exception:
+    except MarkingUnavailable:
         raised = True
     assert raised
     result = marking_unavailable("provider failure", scheme)
     assert result["unavailable"] is True
     assert result["roleplay"] is None
+    assert result["total"] is None
 
 
 def test_invalid_json_does_not_become_a_score():
@@ -78,12 +79,12 @@ def test_invalid_json_does_not_become_a_score():
     try:
         mark_roleplay([{"text": "I go to the cinema twice a month with my sister."}], scheme, ai=ai)
         ok = False
-    except Exception:
+    except MarkingUnavailable:
         ok = True
     assert ok
 
 
-def test_marking_uses_transcript_not_audio():
+def test_marking_falls_back_to_transcript_when_audio_fails():
     scheme = load_scheme()
     ai = FakeAIProvider(supports_audio_flag=True, fail_audio=True)
     result = mark_roleplay(
@@ -93,7 +94,8 @@ def test_marking_uses_transcript_not_audio():
         audio=(b"not-real-audio", "audio/webm"),
     )
     assert result["score"] >= 1
-    assert ai.audio_calls == 0
+    assert ai.audio_calls >= 1
+    assert result["audio_assessed"] is False
 
 
 def test_two_answers_produce_different_marking_evidence():

@@ -19,6 +19,9 @@ class FakeAIProvider(AIProvider):
         transcribe_empty: bool = False,
         fail_feedback: bool = False,
         fail_audio: bool = False,
+        timeout: bool = False,
+        http_error: int | None = None,
+        out_of_range_once: bool = False,
     ):
         self.fail = fail
         self.invalid_json = invalid_json
@@ -27,8 +30,16 @@ class FakeAIProvider(AIProvider):
         self.transcribe_empty = transcribe_empty
         self.fail_feedback = fail_feedback
         self.fail_audio = fail_audio
+        self.timeout = timeout
+        self.http_error = http_error
+        self.out_of_range_once = out_of_range_once
         self.prompts: list[str] = []
         self.audio_calls = 0
+        self.json_calls = 0
+        self.image_calls = 0
+        self.last_image_mime = None
+        self.last_image_bytes = 0
+        self.last_media = []
 
     def is_available(self) -> bool:
         return not self.fail
@@ -40,21 +51,31 @@ class FakeAIProvider(AIProvider):
         prompt = messages[-1].content if messages else ""
         if self.fail:
             raise RuntimeError("provider failure")
+        if self.timeout:
+            raise TimeoutError("Gemini connection error: timed out")
+        if self.http_error:
+            raise RuntimeError(f"Gemini API error {self.http_error}: service unavailable")
         if self.fail_feedback and "STUDENT QUESTION/ANSWER RECORD" in prompt:
             raise RuntimeError("feedback provider failure")
         if json_mode:
+            self.json_calls += 1
             return json.dumps(self._json_for(prompt))
         return self._text_for(prompt)
 
     def generate_text(self, prompt: str, max_tokens: int = 100, temperature: float = 0.7, json_mode: bool = False, system: str = "") -> str:
         if self.fail:
             raise RuntimeError("provider failure")
+        if self.timeout:
+            raise TimeoutError("Gemini connection error: timed out")
+        if self.http_error:
+            raise RuntimeError(f"Gemini API error {self.http_error}: service unavailable")
         if self.fail_feedback and "STUDENT QUESTION/ANSWER RECORD" in prompt:
             raise RuntimeError("feedback provider failure")
         if self.invalid_json and json_mode:
             return "this is not json {"
         self.prompts.append(prompt)
         if json_mode:
+            self.json_calls += 1
             return json.dumps(self._json_for(prompt))
         return self._text_for(prompt)
 
@@ -67,6 +88,23 @@ class FakeAIProvider(AIProvider):
         if json_mode:
             return self.generate_text(prompt, json_mode=True, system=system, max_tokens=max_tokens, temperature=temperature)
         return self.transcribe_audio(audio_bytes, mime_type)
+
+    def generate_with_media(self, prompt: str, media: list, *, system: str = "", json_mode: bool = False, temperature: float = 0.2, max_tokens: int = 800) -> str:
+        self.last_media = []
+        for data, mime in media or []:
+            item = {"mime": mime, "nbytes": len(data or b"")}
+            self.last_media.append(item)
+            if (mime or "").startswith("image/"):
+                self.image_calls += 1
+                self.last_image_mime = mime
+                self.last_image_bytes = len(data or b"")
+            if (mime or "").startswith("audio/"):
+                self.audio_calls += 1
+                if self.fail_audio:
+                    raise RuntimeError("audio marking failed")
+        if json_mode:
+            return self.generate_text(prompt, json_mode=True, system=system, max_tokens=max_tokens, temperature=temperature)
+        return self._text_for(prompt)
 
     def transcribe_audio(self, audio_bytes: bytes, mime_type: str) -> str:
         self.audio_calls += 1
@@ -115,6 +153,18 @@ class FakeAIProvider(AIProvider):
             responses = re.findall(r'STUDENT RESPONSE: "(.*?)"', prompt, re.S)
             if not responses:
                 responses = [text]
+            if self.out_of_range_once and self.json_calls <= 1:
+                return {
+                    "prompt_marks": [{
+                        "prompt_index": 1,
+                        "mark": 9,
+                        "reasoning": "out of range",
+                        "evidence": [responses[0][:80] or "(empty)"],
+                        "strengths": [f"Content: {responses[0][:60]}"],
+                        "weaknesses": ["Range error"],
+                        "improvements": ["Retry"],
+                    }]
+                }
             items = []
             required_flags = re.findall(r"QUESTION REQUIRED: (yes|no)", prompt)
             for i, resp in enumerate(responses):

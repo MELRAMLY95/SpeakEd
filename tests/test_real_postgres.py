@@ -7,6 +7,7 @@ types, real transactions.
 """
 
 import json
+import os
 
 import pytest
 
@@ -484,6 +485,42 @@ def test_user_isolation_on_real_postgres(pg_app, monkeypatch):
     assert rows == [] or all(r["id"] != attempt_a for r in rows)
 
 
+def test_full_exam_marks_persist_on_real_postgres(pg_app, monkeypatch):
+    from tests.fake_ai import install_fake
+    from tests.test_full_exam_pipeline import _complete_full_exam
+
+    install_fake(monkeypatch)
+    app = pg_app()
+    assert engine_kind(app.config["DATABASE_URL"]) == "postgres"
+    client = app.test_client()
+    _signup(client, "pg-full@example.com")
+    result = _complete_full_exam(client)
+    page = result["page"]
+    assert page.status_code == 200
+    assert b"/50" in page.data
+    with app.app_context():
+        assert engine_kind(app.config["DATABASE_URL"]) == "postgres"
+        attempt = query_one(
+            "SELECT status, roleplay_score, topic_talk_score, picture_score, total_score FROM attempts WHERE id = 1"
+        )
+        marking = query_one("SELECT justification_json FROM markings WHERE attempt_id = 1")
+        feedback = query_one("SELECT strengths_json FROM feedback WHERE attempt_id = 1")
+        transcripts = query_all("SELECT stage, text FROM transcripts WHERE attempt_id = 1 AND speaker = 'student'")
+    assert attempt["status"] == "completed"
+    assert attempt["roleplay_score"] is not None
+    assert attempt["topic_talk_score"] is not None
+    assert attempt["picture_score"] is not None
+    assert marking is not None
+    payload = json.loads(marking["justification_json"])
+    assert payload["unavailable"] is False
+    assert payload["picture"]["image_assessed"] is True
+    assert feedback is not None
+    assert any(row["stage"] == "roleplay" for row in transcripts)
+    assert any(row["stage"] == "topic_talk" for row in transcripts)
+    assert any(row["stage"] == "picture" for row in transcripts)
+    assert str(attempt["roleplay_score"]).encode() in page.data or b"/10" in page.data
+
+
 def test_anonymous_users_cannot_reach_exam_data(pg_app):
     app = pg_app()
     owner = app.test_client()
@@ -495,3 +532,79 @@ def test_anonymous_users_cannot_reach_exam_data(pg_app):
     for path in (f"/exam/{attempt_id}", f"/exam/{attempt_id}/state", f"/history/{attempt_id}", "/progress", "/dashboard"):
         response = anon.get(path, follow_redirects=True)
         assert b"Sign in" in response.data, f"{path} was reachable without logging in"
+
+
+@pytest.mark.skipif(os.environ.get("SPEAKED_LIVE_GEMINI") != "1", reason="Set SPEAKED_LIVE_GEMINI=1 to call Gemini")
+def test_live_gemini_full_exam_on_real_postgres(pg_url):
+    from tests.test_full_exam_pipeline import _complete_full_exam
+
+    key = os.environ.get("GEMINI_API_KEY", "")
+    assert key, "GEMINI_API_KEY is required"
+
+    class Live(TestConfig):
+        DATABASE_URL = pg_url
+        SECRET_KEY = "stable-real-postgres-secret"
+        AI_PROVIDER = "gemini"
+        GEMINI_API_KEY = key
+        GEMINI_MODEL = "gemini-3.5-flash-lite"
+
+    app = create_app(Live)
+    assert engine_kind(app.config["DATABASE_URL"]) == "postgres"
+    image_part = {"sent": False, "mime": None, "nbytes": 0}
+    with app.app_context():
+        from ai.ai_provider import get_ai
+
+        provider = get_ai()
+        orig = provider._post_model
+
+        def wrap_post(model, payload):
+            parts = (((payload.get("contents") or [{}])[0].get("parts")) or [])
+            for part in parts:
+                inline = part.get("inline_data") or {}
+                mime = inline.get("mime_type") or ""
+                data = inline.get("data") or ""
+                if mime.startswith("image/") and data:
+                    image_part["sent"] = True
+                    image_part["mime"] = mime
+                    image_part["nbytes"] = len(data)
+            return orig(model, payload)
+
+        provider._post_model = wrap_post
+
+    client = app.test_client()
+    _signup(client, "live-pg@example.com")
+    result = _complete_full_exam(client)
+    page = result["page"]
+    body = page.get_data(as_text=True)
+    assert key not in body
+    assert engine_kind(app.config["DATABASE_URL"]) == "postgres"
+    with app.app_context():
+        attempt = query_one(
+            "SELECT status, roleplay_score, topic_talk_score, picture_score, total_score FROM attempts WHERE id = 1"
+        )
+        marking = query_one("SELECT justification_json FROM markings WHERE attempt_id = 1")
+        feedback = query_one("SELECT strengths_json, examiner_comments FROM feedback WHERE attempt_id = 1")
+    assert attempt["status"] == "completed"
+    payload = json.loads(marking["justification_json"])
+    assert payload["unavailable"] is False
+    assert attempt["roleplay_score"] is not None
+    assert attempt["topic_talk_score"] is not None
+    assert attempt["picture_score"] is not None
+    assert feedback is not None
+    assert payload.get("picture", {}).get("image_assessed") is True
+    assert image_part["sent"] is True
+    assert image_part["mime"] == "image/png"
+    assert image_part["nbytes"] > 50
+    assert "/50" in body
+    print(json.dumps({
+        "engine": engine_kind(app.config["DATABASE_URL"]),
+        "scores": {
+            "roleplay": attempt["roleplay_score"],
+            "topic": attempt["topic_talk_score"],
+            "picture": attempt["picture_score"],
+            "total": attempt["total_score"],
+        },
+        "image": image_part,
+        "audio_assessed": payload.get("audio_assessed"),
+    }))
+

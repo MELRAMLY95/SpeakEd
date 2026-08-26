@@ -10,6 +10,12 @@ def test_parse_json_object_recovers_fence():
     assert parse_json_object(raw)["score"] == 2
 
 
+def test_parse_json_object_wraps_mark_array():
+    parsed = parse_json_object('[{"prompt_index": 1, "mark": 0}]')
+    assert parsed["prompt_marks"][0]["mark"] == 0
+    assert parse_json_object('{"score": 2, "ok": true,}')["score"] == 2
+
+
 def test_parse_json_object_rejects_garbage():
     with pytest.raises(ValueError):
         parse_json_object("not json at all")

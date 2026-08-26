@@ -195,10 +195,17 @@ def results(attempt_id):
         except json.JSONDecodeError:
             marking = {}
     if marking and not marking.get("unavailable") and not feedback_row:
-        from ai.feedback import feedback_from_marking
+        from ai.feedback import build_feedback
 
         transcripts = [_row_dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
-        feedback_from_marking(attempt_id, marking, transcripts)
+        payload = {}
+        if attempt.get("payload_json"):
+            try:
+                payload = json.loads(attempt["payload_json"] or "{}")
+            except json.JSONDecodeError:
+                payload = {}
+        payload.update(engine._marking_payload(payload, attempt_id, exam_type=attempt["exam_type"]))
+        build_feedback(attempt_id, marking, transcripts, payload=payload)
         feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
     feedback = None
     if feedback_row:

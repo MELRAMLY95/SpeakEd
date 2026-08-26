@@ -11,13 +11,24 @@ logger = logging.getLogger(__name__)
 def _qa_blocks(transcripts: list[dict], payload: dict | None = None) -> str:
     payload = payload or {}
     blocks = []
+    for key, label in (
+        ("roleplay_student_turns", "roleplay"),
+        ("topic_turns", "topic_talk"),
+        ("picture_turns", "picture"),
+    ):
+        for index, turn in enumerate(payload.get(key) or [], start=1):
+            question = (turn.get("question") or "").strip() or "(question not recorded)"
+            text = (turn.get("text") or "").strip() or "(no response)"
+            blocks.append(f"Section: {label}\nTurn {index}\nExaminer: {question}\nStudent: {text}")
+    if blocks:
+        return "\n\n".join(blocks)
     for row in transcripts:
         if row.get("speaker") != "student":
             continue
-        question = row.get("prompt_id") or ""
+        question = row.get("question") or row.get("prompt_id") or "(question not recorded)"
         text = (row.get("text") or "").strip() or "(no response)"
         stage = row.get("stage") or ""
-        blocks.append(f"Section: {stage}\nPrompt id: {question}\nStudent: {text}")
+        blocks.append(f"Section: {stage}\nExaminer: {question}\nStudent: {text}")
     if not blocks:
         topic = payload.get("topic_title") or ""
         return f"(no student speech captured)\nTopic: {topic}"
@@ -52,43 +63,47 @@ def build_feedback_with_ai(attempt_id: int, marking: dict, transcripts: list[dic
         if marking.get("audio_assessed")
         else "Do not claim pronunciation was assessed; the model did not receive audio."
     )
-    prompt = f"""You are an IGCSE English as a Second Language examiner giving personalized feedback aligned with Pearson 4XES2.
+    prompt = f"""You are a Pearson Edexcel IGCSE English as a Second Language (4XES2) speaking examiner writing personalized feedback.
 
 STUDENT QUESTION/ANSWER RECORD:
 {qa}
 
-PERFORMANCE SCORES:
-- Role play (Task 1): {marking.get('roleplay', {}).get('score', 0)}/10 marks
-- Topic talk (Task 2): {marking.get('topic_talk', {}).get('score', 0)}/20 marks
-- Picture conversation (Task 3): {marking.get('picture', {}).get('score', 0)}/20 marks
-- Total score: {marking.get('total', 0)}/{marking.get('max_total', 50)} marks
+MARKING ALREADY AWARDED (do not change the scores; explain them):
+{json.dumps(_feedback_mark_summary(marking), ensure_ascii=True)[:3500]}
 
 {audio_note}
 
-Use the student's actual words. Different answers must produce different feedback.
-Do not invent things they did not say.
-Do not give generic comments such as "Good job! Try to improve your vocabulary."
+Ground every comment in the student's actual words.
+Different answers must produce different feedback.
+Do not invent grammar mistakes, vocabulary, ideas, or pronunciation evidence.
+Do not write generic comments such as "Good job, keep practicing."
 
 Return JSON:
-{{"strengths": ["specific strength with evidence", "specific strength", "specific strength"], "weaknesses": ["specific weakness with evidence", "specific weakness", "specific weakness"], "recommendations": ["actionable improvement", "actionable improvement", "actionable improvement"]}}"""
+{{"overall": "2-3 sentences on this specific performance", "strengths": ["specific strength with a short quote", "specific strength", "specific strength"], "weaknesses": ["specific weakness with a short quote", "specific weakness", "specific weakness"], "grammar": ["one grammar point from the actual wording, or say none evidenced"], "vocabulary": ["one vocabulary point from the actual wording"], "communication": ["how well the answers addressed the examiner prompts"], "pronunciation": ["only if audio was assessed, otherwise empty"], "recommendations": ["specific action for the next attempt", "specific action", "specific action"]}}"""
 
     try:
         result = ai.generate_json(
             prompt,
-            system="You are a Pearson Edexcel 4XES2 examiner. Return valid JSON only.",
+            system="You are a Pearson Edexcel 4XES2 examiner. Return valid JSON only. Never invent student words.",
             max_tokens=800,
             temperature=0.4,
         )
         strengths = result.get("strengths") or []
         weaknesses = result.get("weaknesses") or []
         recommendations = result.get("recommendations") or []
+        grammar = _as_str_list(result.get("grammar"))
+        vocabulary = _as_str_list(result.get("vocabulary"))
+        communication = _as_str_list(result.get("communication"))
+        pronunciation = _as_str_list(result.get("pronunciation")) if marking.get("audio_assessed") else []
         if not isinstance(strengths, list) or not isinstance(weaknesses, list) or not isinstance(recommendations, list):
             raise ValueError("Feedback JSON lists were missing")
         strengths = [str(s) for s in strengths if str(s).strip()]
         weaknesses = [str(s) for s in weaknesses if str(s).strip()]
         recommendations = [str(s) for s in recommendations if str(s).strip()]
+        recommendations = _unique(recommendations + grammar + vocabulary + communication)[:6]
         if not strengths or not weaknesses or not recommendations:
             raise ValueError("Feedback JSON was incomplete")
+        overall = str(result.get("overall") or "").strip()
     except Exception as exc:
         logger.warning("AI feedback failed for attempt %s: %s", attempt_id, exc)
         return {
@@ -105,6 +120,10 @@ Return JSON:
 
     lost = []
     comments = _comments_from_marking(marking, transcripts)
+    if overall:
+        comments = f"{overall}\n\n{comments}"
+    if pronunciation:
+        comments = f"{comments}\n\nPronunciation (from audio): " + " ".join(pronunciation)
     payload_out = {
         "unavailable": False,
         "strengths": strengths,
@@ -160,11 +179,15 @@ def _lists_from_marking(marking: dict, transcripts: list[dict]) -> tuple[list[st
     quote = _first_student_quote(transcripts)
     if quote:
         strengths = strengths or [f"You said: “{quote}”."]
-        weaknesses = weaknesses or ["Some answers needed more detail against the examiner prompt."]
-        recommendations = recommendations or ["Extend that idea with a reason and a specific example."]
-    strengths = _unique(strengths)[:5] or ["You completed the speaking task."]
-    weaknesses = _unique(weaknesses)[:5] or ["Development was uneven across the prompts."]
-    recommendations = _unique(recommendations)[:5] or ["Practise answering with a reason and an example."]
+        weaknesses = weaknesses or [f"Develop “{quote}” further against the examiner prompt."]
+        recommendations = recommendations or [f"Return to “{quote}” and add a reason plus a specific example."]
+    strengths = _unique(strengths)[:5]
+    weaknesses = _unique(weaknesses)[:5]
+    recommendations = _unique(recommendations)[:5]
+    if not strengths or not weaknesses or not recommendations:
+        strengths = strengths or ([f"You said: “{quote}”."] if quote else ["No student speech was captured, so no strength could be evidenced."])
+        weaknesses = weaknesses or ([f"Develop “{quote}” further against the examiner prompt."] if quote else ["No student speech was captured, so no weakness could be evidenced."])
+        recommendations = recommendations or ([f"Return to “{quote}” and add a reason plus a specific example."] if quote else ["Record a full spoken answer to each examiner prompt."])
     return strengths, weaknesses, recommendations
 
 
@@ -187,6 +210,24 @@ def _unique(items: list[str]) -> list[str]:
         seen.add(key)
         out.append(item)
     return out
+
+
+def _feedback_mark_summary(marking: dict) -> dict:
+    roleplay = marking.get("roleplay") or {}
+    return {
+        "roleplay_score": roleplay.get("score"),
+        "topic_talk_score": (marking.get("topic_talk") or {}).get("score"),
+        "picture_score": (marking.get("picture") or {}).get("score"),
+        "total": marking.get("total"),
+        "max_total": marking.get("max_total"),
+        "audio_assessed": bool(marking.get("audio_assessed")),
+        "roleplay_evidence": roleplay.get("evidence"),
+        "roleplay_reasoning": [
+            item.get("reasoning")
+            for item in (roleplay.get("prompt_marks") or [])
+            if isinstance(item, dict)
+        ],
+    }
 
 
 def _first_student_quote(transcripts: list[dict], limit: int = 90) -> str:

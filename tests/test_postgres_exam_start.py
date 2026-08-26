@@ -209,3 +209,41 @@ def test_retry_marking_does_not_500_on_postgres(logged_in, monkeypatch):
         row = query_one("SELECT status, roleplay_score FROM attempts WHERE id = ?", (attempt_id,))
     assert row["status"] == "completed"
     assert row["roleplay_score"] is not None
+
+
+def test_marking_and_feedback_persist_on_postgres(logged_in, monkeypatch):
+    from tests.fake_ai import FakeAIProvider, install_fake
+
+    app, client = logged_in
+    fake = install_fake(monkeypatch, FakeAIProvider())
+    start = _start(client, "roleplay")
+    attempt_id = int(start.headers["Location"].rstrip("/").split("/")[-1])
+    answer = "I love football because I play it with my friends every weekend."
+    finished = None
+    for _ in range(8):
+        response = client.post(
+            f"/exam/{attempt_id}/turn",
+            json={"transcript": answer, "metrics": {"duration_ms": 4000, "word_count": 14}},
+        )
+        assert response.status_code == 200, response.get_data(as_text=True)
+        data = response.get_json()
+        if data.get("redirect"):
+            finished = data["redirect"]
+            break
+    assert finished
+    page = client.get(finished)
+    assert page.status_code == 200
+    assert b"/10" in page.data
+    assert b"football" in page.data.lower()
+    with app.app_context():
+        marking = query_one("SELECT justification_json, scores_json FROM markings WHERE attempt_id = ?", (attempt_id,))
+        feedback = query_one("SELECT strengths_json, examiner_comments FROM feedback WHERE attempt_id = ?", (attempt_id,))
+        attempt = query_one("SELECT status, roleplay_score FROM attempts WHERE id = ?", (attempt_id,))
+    assert marking is not None
+    payload = json.loads(marking["justification_json"])
+    assert payload["unavailable"] is False
+    assert payload["total"] == attempt["roleplay_score"]
+    assert "football" in json.dumps(payload).lower()
+    assert feedback is not None
+    assert "football" in (feedback["strengths_json"] + feedback["examiner_comments"]).lower()
+    assert any("football" in p.lower() for p in fake.prompts)

@@ -204,6 +204,15 @@ class GeminiProvider(AIProvider):
         self.api_key = api_key
         self.model = model
         self.timeout = timeout
+        self.last_http_status = None
+        self.last_model_used = None
+        self.last_error_redacted = None
+
+    def _redact(self, text: str) -> str:
+        out = str(text or "")
+        if self.api_key:
+            out = out.replace(self.api_key, "[REDACTED]")
+        return out
 
     def is_available(self) -> bool:
         return bool(self.api_key)
@@ -266,12 +275,31 @@ class GeminiProvider(AIProvider):
         )
         try:
             with urllib.request.urlopen(request, timeout=self.timeout) as response:
+                status = getattr(response, "status", None)
+                self.last_http_status = status if isinstance(status, int) else 200
+                self.last_model_used = model
+                self.last_error_redacted = None
                 body = json.loads(response.read().decode("utf-8"))
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", errors="replace")[:800]
-            raise RuntimeError(f"Gemini API error {exc.code}: {detail}") from exc
+            self.last_http_status = exc.code
+            self.last_model_used = model
+            self.last_error_redacted = self._redact(detail)
+            raise RuntimeError(f"Gemini API error {exc.code}: {self.last_error_redacted}") from exc
+        except TimeoutError as exc:
+            self.last_http_status = None
+            self.last_model_used = model
+            self.last_error_redacted = "timed out"
+            raise RuntimeError("Gemini connection error: timed out") from exc
         except urllib.error.URLError as exc:
-            raise RuntimeError(f"Gemini connection error: {exc.reason}") from exc
+            self.last_http_status = None
+            self.last_model_used = model
+            reason = self._redact(getattr(exc, "reason", exc))
+            if "timed out" in str(reason).lower() or "timeout" in str(reason).lower():
+                self.last_error_redacted = "timed out"
+                raise RuntimeError("Gemini connection error: timed out") from exc
+            self.last_error_redacted = reason
+            raise RuntimeError(f"Gemini connection error: {reason}") from exc
         return self._text_from_body(body)
 
     def _send(
@@ -360,15 +388,37 @@ class GeminiProvider(AIProvider):
         temperature: float = 0.2,
         max_tokens: int = 800,
     ) -> str:
-        import base64
-
         if not audio_bytes:
             raise RuntimeError("Gemini audio generation requires the student's recording")
-        mime = (mime_type or "audio/webm").split(";")[0].strip() or "audio/webm"
-        parts: list[dict[str, Any]] = [
-            {"text": prompt},
-            {"inline_data": {"mime_type": mime, "data": base64.b64encode(audio_bytes).decode("ascii")}},
-        ]
+        return self.generate_with_media(
+            prompt,
+            [(audio_bytes, mime_type or "audio/webm")],
+            system=system,
+            json_mode=json_mode,
+            temperature=temperature,
+            max_tokens=max_tokens,
+        )
+
+    def generate_with_media(
+        self,
+        prompt: str,
+        media: list[tuple[bytes, str]],
+        *,
+        system: str = "",
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 800,
+    ) -> str:
+        import base64
+
+        if not media:
+            raise RuntimeError("Gemini media generation requires at least one attached file")
+        parts: list[dict[str, Any]] = [{"text": prompt}]
+        for data, mime_type in media:
+            if not data:
+                raise RuntimeError("Gemini media part was empty")
+            mime = (mime_type or "application/octet-stream").split(";")[0].strip()
+            parts.append({"inline_data": {"mime_type": mime, "data": base64.b64encode(data).decode("ascii")}})
         return self._send(
             [{"role": "user", "parts": parts}],
             system=system,

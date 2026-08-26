@@ -10,6 +10,17 @@ def _is_quota_error(exc: Exception) -> bool:
     return "429" in text or "resource_exhausted" in text or "quota" in text
 
 
+def _is_non_retryable(exc: Exception) -> bool:
+    text = str(exc).lower()
+    return (
+        _is_quota_error(exc)
+        or "timed out" in text
+        or "timeout" in text
+        or "gemini api error 5" in text
+        or "gemini connection error" in text
+    )
+
+
 @dataclass
 class AIMessage:
     role: str
@@ -73,7 +84,7 @@ class AIProvider(ABC):
                 return parse_json_object(raw)
             except Exception as exc:
                 last_error = exc
-                if _is_quota_error(exc):
+                if _is_non_retryable(exc):
                     break
         raise ValueError(f"AI JSON was invalid after retry: {last_error}")
 
@@ -118,7 +129,53 @@ class AIProvider(ABC):
                 return parse_json_object(raw)
             except Exception as exc:
                 last_error = exc
-                if _is_quota_error(exc):
+                if _is_non_retryable(exc):
+                    break
+        raise ValueError(f"AI JSON was invalid after retry: {last_error}")
+
+    def generate_with_media(
+        self,
+        prompt: str,
+        media: list[tuple[bytes, str]],
+        *,
+        system: str = "",
+        json_mode: bool = False,
+        temperature: float = 0.2,
+        max_tokens: int = 800,
+    ) -> str:
+        if not media:
+            return self.generate_text(prompt, max_tokens=max_tokens, temperature=temperature, json_mode=json_mode, system=system)
+        audio = next((item for item in media if (item[1] or "").startswith("audio/")), None)
+        if audio:
+            return self.generate_with_audio(
+                prompt, audio[0], audio[1], system=system, json_mode=json_mode, temperature=temperature, max_tokens=max_tokens
+            )
+        raise RuntimeError(f"{self.name} does not accept image input")
+
+    def generate_json_with_media(
+        self,
+        prompt: str,
+        media: list[tuple[bytes, str]],
+        *,
+        system: str = "",
+        max_tokens: int = 800,
+        temperature: float = 0.2,
+    ) -> dict:
+        last_error: Exception | None = None
+        for _ in range(2):
+            try:
+                raw = self.generate_with_media(
+                    prompt,
+                    media,
+                    system=system,
+                    json_mode=True,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                )
+                return parse_json_object(raw)
+            except Exception as exc:
+                last_error = exc
+                if _is_non_retryable(exc):
                     break
         raise ValueError(f"AI JSON was invalid after retry: {last_error}")
 

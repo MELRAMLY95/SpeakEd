@@ -236,6 +236,7 @@ class ExamEngine:
                 "text": text,
                 "metrics": metrics_summary,
                 "prompt_id": (answered_prompt or {}).get("id"),
+                "question": (answered_prompt or {}).get("display") or (answered_prompt or {}).get("spoken") or "",
                 "audio_path": audio_path,
                 "at": _now(),
             }
@@ -266,16 +267,14 @@ class ExamEngine:
         return state
 
     def finish(self, attempt_id: int, user_id: int) -> dict:
-        from ai.feedback import feedback_from_marking
+        from ai.feedback import build_feedback
         from ai.marking import mark_attempt
 
         try:
             attempt = self._get(attempt_id, user_id)
             payload = _payload(attempt)
-            marking = mark_attempt(
-                attempt_id,
-                self._marking_payload(payload, attempt_id, exam_type=attempt["exam_type"]),
-            )
+            marking_input = self._marking_payload(payload, attempt_id, exam_type=attempt["exam_type"])
+            marking = mark_attempt(attempt_id, marking_input)
             if marking.get("unavailable"):
                 payload["marking_error"] = marking.get("error")
                 execute(
@@ -291,7 +290,9 @@ class ExamEngine:
             # so the results page showed dashes even though marking had succeeded.
             self._store_scores(attempt, marking)
             transcripts = [_row_dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
-            feedback = feedback_from_marking(attempt_id, marking, transcripts)
+            fb_payload = dict(payload)
+            fb_payload.update(marking_input)
+            feedback = build_feedback(attempt_id, marking, transcripts, payload=fb_payload)
             payload.pop("marking_error", None)
             _save_payload(attempt_id, payload)
             cleanup_attempt_audio(attempt_id)
@@ -468,7 +469,9 @@ class ExamEngine:
         if not remaining:
             return None
         ai = get_ai()
-        if not ai or not ai.is_available():
+        # Gemini free-tier quota is small. Follow-up reordering is not marking;
+        # calling Gemini here can exhaust the key before finish() can mark.
+        if not ai or not ai.is_available() or getattr(ai, "name", "") == "gemini":
             return remaining[0]
         options = [{"id": p.get("id"), "prompt": p.get("prompt") or p.get("spoken")} for p in remaining]
         last_q = (answered_prompt or {}).get("display") or (answered_prompt or {}).get("spoken") or ""
@@ -628,19 +631,19 @@ Return JSON: {{"prompt_id": "{options[0]['id']}", "reason": "short reason"}}""",
             out = []
             for i, t in enumerate(items):
                 requires = False
-                question = ""
+                question = (t.get("question") or "").strip()
                 if stage == "roleplay" and i < len(roleplay_prompts):
                     requires = bool(roleplay_prompts[i].get("ask_question"))
-                    question = roleplay_prompts[i].get("spoken", "")
+                    question = question or roleplay_prompts[i].get("spoken", "")
                 elif stage == "topic_talk":
                     prompt_id = t.get("prompt_id")
                     if prompt_id == "topic-start":
-                        question = "Deliver your topic talk."
+                        question = question or "Deliver your topic talk."
                     else:
-                        question = next((q.get("prompt", "") for q in topic_followups if q.get("id") == prompt_id), "")
+                        question = question or next((q.get("prompt", "") for q in topic_followups if q.get("id") == prompt_id), "")
                 elif stage == "picture":
                     prompt_id = t.get("prompt_id")
-                    question = next((p.get("spoken", "") for p in picture_prompts if p.get("id") == prompt_id), "")
+                    question = question or next((p.get("spoken", "") for p in picture_prompts if p.get("id") == prompt_id), "")
                 out.append({
                     "text": t.get("text", ""),
                     "metrics": t.get("metrics") or {},
@@ -655,6 +658,10 @@ Return JSON: {{"prompt_id": "{options[0]['id']}", "reason": "short reason"}}""",
             "roleplay_student_turns": student("roleplay") if exam_type in {"full", "roleplay"} else [],
             "topic_turns": student("topic_talk") if exam_type in {"full", "topic_talk"} else [],
             "picture_turns": student("picture") if exam_type in {"full", "picture"} else [],
+            "topic_title": payload.get("topic_title") or "",
+            "picture_title": (payload.get("picture") or {}).get("title") or "",
+            "picture_intro": (payload.get("picture") or {}).get("examiner_intro") or "",
+            "picture_image": (payload.get("picture") or {}).get("image") or "",
         }
 
     def _practice_note(self, text: str, stage: str, prompt: dict | None = None) -> str:

@@ -33,6 +33,7 @@ def test_gemini3_uses_minimal_thinking_and_omits_temperature():
 
     assert "gemini-3.6-flash:" in captured["url"]
     assert captured["timeout"] == 45
+    assert provider.last_http_status == 200
     config = captured["body"]["generationConfig"]
     assert config["thinkingConfig"]["thinkingLevel"] == "minimal"
     assert "temperature" not in config
