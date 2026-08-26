@@ -181,6 +181,30 @@ def test_premium_user_does_not_get_adsense_script(live_ads_app, live_ads_client)
         assert b"ad-slot" not in response.data, path
 
 
+def test_live_publisher_shows_auto_ads_without_unit_slot_ids(tmp_path):
+    class Local(AdsConfig):
+        DATABASE_URL = f"sqlite:///{tmp_path / 'ads-auto.db'}"
+        AD_CLIENT_ID = "ca-pub-3990201330574869"
+        ADS_TEST_MODE = False
+        ADS_CONSENT_REQUIRED = False
+        AD_SLOT_HOME = ""
+        AD_SLOT_DASHBOARD = ""
+        AD_SLOT_INFORMATION = ""
+        AD_SLOT_PRIVACY = ""
+
+    client = create_app(Local).test_client()
+    home = client.get("/")
+    assert home.status_code == 200
+    assert b"ca-pub-3990201330574869" in home.data
+    assert b"googlesyndication.com/pagead/js/adsbygoogle.js" in home.data
+    assert b'class="adsbygoogle"' in home.data
+    assert b'data-ad-format="auto"' in home.data
+    csp = home.headers.get("Content-Security-Policy") or ""
+    assert "pagead2.googlesyndication.com" in csp
+    assert "www.gstatic.com" in csp
+    assert b"Allow" not in home.data
+
+
 def test_ads_never_appear_during_an_active_exam(ads_client, monkeypatch):
     install_fake(monkeypatch)
     signup(ads_client)
@@ -264,7 +288,7 @@ def test_browser_cannot_fake_premium_to_hide_ads(ads_client):
 def test_mobile_ad_css_keeps_layout_usable():
     assert "@media (max-width: 640px)" in ADS_CSS
     assert "width: 100%" in ADS_CSS
-    assert "max-height: 90px" in ADS_CSS or "max-height: 100px" in ADS_CSS
+    assert "max-height: 250px" in ADS_CSS or "max-height: 90px" in ADS_CSS or "max-height: 100px" in ADS_CSS
 
 
 def test_ad_slot_does_not_include_student_information(ads_client):

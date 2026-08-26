@@ -10,12 +10,13 @@
       <button class="btn btn-ghost btn-sm" type="submit" name="choice" value="allow">Allow</button>
       <button class="btn btn-ghost btn-sm" type="submit" name="choice" value="deny">No advertisements</button>
     </form>
-  {% elif ad_slot.live and ad_slot.provider == "adsense" and ad_slot.client_id and ad_slot.slot_id %}
+  {% elif ad_slot.live and ad_slot.provider == "adsense" and ad_slot.client_id %}
     <div class="ad-frame">
       <ins class="adsbygoogle"
+           style="display:block"
            data-ad-client="{{ ad_slot.client_id }}"
-           data-ad-slot="{{ ad_slot.slot_id }}"
-           data-ad-format="horizontal"
+           {% if ad_slot.slot_id %}data-ad-slot="{{ ad_slot.slot_id }}"{% endif %}
+           data-ad-format="auto"
            data-full-width-responsive="true"
            data-npa="1"
            data-tag-for-under-age-of-consent="1"

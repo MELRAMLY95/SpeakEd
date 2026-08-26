@@ -176,6 +176,10 @@ def apply_security_headers(response):
                 "https://pagead2.googlesyndication.com",
                 "https://googleads.g.doubleclick.net",
                 "https://www.googletagservices.com",
+                "https://www.google.com",
+                "https://www.gstatic.com",
+                "https://adservice.google.com",
+                "https://partner.googleadservices.com",
             ]
         )
         img_src.extend(
@@ -184,7 +188,10 @@ def apply_security_headers(response):
                 "https://googleads.g.doubleclick.net",
                 "https://tpc.googlesyndication.com",
                 "https://www.google.com",
+                "https://www.gstatic.com",
                 "https://ep1.adtrafficquality.google",
+                "https://ep2.adtrafficquality.google",
+                "https://adservice.google.com",
             ]
         )
         connect_src.extend(
@@ -192,6 +199,10 @@ def apply_security_headers(response):
                 "https://pagead2.googlesyndication.com",
                 "https://googleads.g.doubleclick.net",
                 "https://ep1.adtrafficquality.google",
+                "https://ep2.adtrafficquality.google",
+                "https://adservice.google.com",
+                "https://www.google.com",
+                "https://csi.gstatic.com",
             ]
         )
         frame_src.extend(
@@ -199,6 +210,8 @@ def apply_security_headers(response):
                 "https://googleads.g.doubleclick.net",
                 "https://tpc.googlesyndication.com",
                 "https://www.google.com",
+                "https://pagead2.googlesyndication.com",
+                "https://www.googlesyndication.com",
             ]
         )
     directives = [

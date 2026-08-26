@@ -30,8 +30,8 @@
 .ad-frame {
   width: 100%;
   max-width: 100%;
-  min-height: 0;
-  max-height: 90px;
+  min-height: 90px;
+  max-height: 250px;
   overflow: hidden;
 }
 
@@ -39,8 +39,8 @@
   display: block;
   width: 100%;
   max-width: 100%;
-  min-height: 50px;
-  max-height: 90px;
+  min-height: 90px;
+  max-height: 250px;
 }
 
 .ad-consent p {
@@ -61,6 +61,6 @@
   }
   .ad-frame,
   .ad-slot .adsbygoogle {
-    max-height: 100px;
+    max-height: 250px;
   }
 }

@@ -137,7 +137,7 @@ def build_ad_slot(name: str) -> dict | None:
     config_key = _SLOT_CONFIG_KEYS[slot_name]
     slot_id = safe_slot_id(current_app.config.get(config_key))
     client = publisher_id()
-    live = is_live_publisher(client) and not needs_consent and bool(slot_id)
+    live = is_live_publisher(client) and not needs_consent
     if live:
         g.allow_ad_script = True
 
