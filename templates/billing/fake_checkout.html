@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/billing.css') }}">{% endblock %}
+{% block title %}Sandbox checkout{% endblock %}
+{% block content %}
+<section class="wrap billing-hero">
+  <p class="eyebrow">Test mode</p>
+  <h1>Sandbox payment</h1>
+  <p class="lead">This page does not take real money. It is only for local and automated tests. Premium still starts only after a verified sandbox confirmation.</p>
+  <p>Amount: {{ premium_price }}, billed monthly until cancelled.</p>
+  <form method="post">
+    {% include "_csrf.html" %}
+    <button class="btn btn-primary" type="submit" name="outcome" value="pay">Confirm test payment</button>
+    <button class="btn btn-ghost" type="submit" name="outcome" value="fail">Simulate failed payment</button>
+  </form>
+  <p><a href="{{ url_for('billing.pricing') }}">Cancel and return</a></p>
+</section>
+{% endblock %}

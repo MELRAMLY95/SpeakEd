@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/billing.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Pricing{% endblock %}
+{% block content %}
+<section class="wrap billing-hero">
+  <p class="eyebrow">Plans</p>
+  <h1>Choose the plan that fits your practice</h1>
+  <p class="lead">Premium is a recurring {{ premium_plan.interval }}ly subscription. You can cancel at any time. Exam history stays in your account if you return to Free.</p>
+</section>
+<section class="wrap billing-grid">
+  <article class="billing-card">
+    <h2>{{ free_plan.name }}</h2>
+    <p class="billing-price">£0</p>
+    <p class="billing-period">No payment required</p>
+    <ul>
+      <li>{{ free_plan.limits.practice_exam }} speaking attempts per month</li>
+      <li>{{ free_plan.limits.retry_marking }} marking retries per month</li>
+      <li>{{ free_plan.limits.info_gen }} information requests per month</li>
+      <li>Practice, progress, and the AI examiner within those limits</li>
+      <li>Advertisements may appear on approved pages only</li>
+    </ul>
+    {% if snapshot.premium %}
+      <p>You currently have Premium.</p>
+    {% elif current_user %}
+      <p>This is your current plan.</p>
+    {% else %}
+      <a class="btn btn-ghost" href="{{ url_for('auth.signup') }}">Create a Free account</a>
+    {% endif %}
+  </article>
+  <article class="billing-card billing-card-premium">
+    <h2>{{ premium_plan.name }}</h2>
+    <p class="billing-price">{{ premium_price }}</p>
+    <p class="billing-period">Billed every {{ premium_plan.interval }}, until you cancel</p>
+    <ul>
+      <li>{% if premium_plan.limits.practice_exam == -1 %}Unlimited{% else %}{{ premium_plan.limits.practice_exam }}{% endif %} speaking attempts per month</li>
+      <li>{% if premium_plan.limits.retry_marking == -1 %}Unlimited{% else %}{{ premium_plan.limits.retry_marking }}{% endif %} marking retries per month</li>
+      <li>{% if premium_plan.limits.info_gen == -1 %}Unlimited{% else %}{{ premium_plan.limits.info_gen }}{% endif %} information requests per month</li>
+      <li>Full AI examiner, detailed feedback, and audio assessment when supported</li>
+      <li>Advanced progress views</li>
+      <li>No advertisements</li>
+    </ul>
+    {% if snapshot.premium %}
+      <a class="btn btn-primary" href="{{ url_for('billing.manage') }}">Manage subscription</a>
+    {% elif current_user %}
+      <form method="post" action="{{ url_for('billing.checkout') }}">
+        {% include "_csrf.html" %}
+        <button class="btn btn-primary" type="submit">Upgrade to Premium</button>
+      </form>
+    {% else %}
+      <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Create an account to upgrade</a>
+    {% endif %}
+  </article>
+</section>
+<p class="wrap billing-note">Checkout is handled by Stripe. SpeakEd never stores card numbers. Opening checkout does not activate Premium; access starts after the payment provider confirms the subscription.</p>
+{% endblock %}

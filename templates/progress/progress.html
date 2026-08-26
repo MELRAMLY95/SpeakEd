@@ -11,6 +11,9 @@
     <p class="eyebrow">My progress</p>
     <h1>Track your speaking improvement</h1>
     <p class="lead">{{ disclaimer }}</p>
+  {% if is_premium %}
+    <p>Premium includes your full attempt history and does not count speaking attempts against a monthly Free cap.</p>
+  {% endif %}
   </div>
 </section>
 <section class="wrap">
@@ -38,6 +41,7 @@
         <div class="history-actions">
           <a class="btn btn-ghost btn-sm" href="{{ url_for('progress.attempt', attempt_id=row.id) }}">View</a>
           <form method="post" action="{{ url_for('exam.retry_marking', attempt_id=row.id) }}">
+            {% include "_csrf.html" %}
             <button class="btn btn-primary btn-sm" type="submit">Retry marking</button>
           </form>
         </div>

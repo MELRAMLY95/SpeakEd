@@ -12,6 +12,7 @@
     <p class="lead">Practise the role play task with the examiner. You will be given a situation and candidate bullet points.</p>
     <div class="hero-actions">
       <form method="post" action="{{ url_for('practice.start') }}">
+        {% include "_csrf.html" %}
         <input type="hidden" name="section" value="roleplay">
         <button class="btn btn-primary" type="submit">Start role play</button>
       </form>

@@ -163,11 +163,13 @@ def test_unknown_email_reproduces_the_reported_symptom(pg, caplog):
         response = _login(client, email="only-in-sqlite@example.com")
 
     assert b"Incorrect email or password" in response.data
-    assert "no account found" in caplog.text
+    assert "Login failed" in caplog.text
+    assert "only-in-sqlite@example.com" not in caplog.text
+    assert "no account found" not in caplog.text
     assert "password mismatch" not in caplog.text
 
 
-def test_wrong_password_is_logged_differently_from_unknown_email(pg, caplog):
+def test_failed_login_does_not_log_email_or_password(pg, caplog):
     app = create_app(_pg_config())
     client = app.test_client()
     _signup(client)
@@ -176,10 +178,12 @@ def test_wrong_password_is_logged_differently_from_unknown_email(pg, caplog):
     with caplog.at_level("INFO"):
         _login(client, password=WRONG_PASSWORD)
 
-    assert "password mismatch" in caplog.text
-    assert "no account found" not in caplog.text
+    assert "Login failed" in caplog.text
     assert PASSWORD not in caplog.text
     assert WRONG_PASSWORD not in caplog.text
+    assert EMAIL not in caplog.text
+    assert "password mismatch" not in caplog.text
+    assert "no account found" not in caplog.text
 
 
 def test_parameterless_statements_do_not_pass_an_empty_sequence(pg):

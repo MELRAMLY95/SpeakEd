@@ -8,8 +8,10 @@ import urllib.error
 import urllib.request
 import zlib
 from pathlib import Path
+from urllib.parse import urlparse
 
 from config import BASE_DIR
+from security import host_is_blocked
 
 MAX_PICTURE_BYTES = 2_000_000
 FETCH_TIMEOUT = 10
@@ -63,16 +65,29 @@ def load_picture_media(ref: str | None) -> tuple[bytes, str]:
 
 
 def _local_path(ref: str) -> Path:
-    raw = ref.split("?", 1)[0]
+    raw = ref.split("?", 1)[0].replace("\\", "/")
+    if not raw or ".." in Path(raw).parts or "\0" in raw:
+        raise PictureLoadError("Invalid picture path.")
     if raw.startswith("/static/"):
-        return BASE_DIR / raw.lstrip("/")
-    path = Path(raw)
-    if path.is_absolute():
-        return path
-    return BASE_DIR / raw
+        path = (BASE_DIR / raw.lstrip("/")).resolve()
+    elif Path(raw).is_absolute():
+        raise PictureLoadError("Invalid picture path.")
+    else:
+        path = (BASE_DIR / raw.lstrip("/")).resolve()
+    static_root = (BASE_DIR / "static").resolve()
+    try:
+        path.relative_to(static_root)
+    except ValueError as exc:
+        raise PictureLoadError("Invalid picture path.") from exc
+    return path
 
 
 def _fetch_url(url: str) -> tuple[bytes, str]:
+    parsed = urlparse(url)
+    if parsed.scheme != "https" or parsed.username or parsed.password:
+        raise PictureLoadError("Picture URLs must be HTTPS.")
+    if host_is_blocked(parsed.hostname or ""):
+        raise PictureLoadError("That picture URL is not allowed.")
     request = urllib.request.Request(url, method="GET", headers={"User-Agent": "SpeakEd-examiner"})
     try:
         with urllib.request.urlopen(request, timeout=FETCH_TIMEOUT) as response:

@@ -20,7 +20,7 @@ if (navToggle && nav) {
   });
 
   nav.addEventListener("click", (event) => {
-    if (event.target.closest("a")) setNavOpen(false);
+    if (event.target.closest("a") || event.target.closest("button")) setNavOpen(false);
   });
 
   document.addEventListener("click", (event) => {
@@ -140,7 +140,11 @@ document.querySelectorAll("form").forEach((form) => {
     // Lock the current size so the button does not collapse around the spinner.
     submitBtn.style.minWidth = `${submitBtn.offsetWidth}px`;
     submitBtn.setAttribute("aria-busy", "true");
-    submitBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span class="sr-only">Working…</span>';
+    if (form.hasAttribute("data-gather-form")) {
+      submitBtn.textContent = "Gathering information…";
+    } else {
+      submitBtn.innerHTML = '<span class="spinner" aria-hidden="true"></span><span class="sr-only">Working…</span>';
+    }
     submitBtn.disabled = true;
   });
 });
@@ -199,3 +203,32 @@ function showToast(message, type = "info") {
 }
 
 window.showToast = showToast;
+
+window.SpeakEdCsrf = {
+  token() {
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.getAttribute("content") || "" : "";
+  },
+  headers(extra) {
+    const headers = Object.assign({}, extra || {});
+    const token = this.token();
+    if (token) headers["X-CSRF-Token"] = token;
+    return headers;
+  },
+};
+
+document.addEventListener("submit", (event) => {
+  const form = event.target;
+  if (!(form instanceof HTMLFormElement)) return;
+  const method = (form.getAttribute("method") || "get").toLowerCase();
+  if (method !== "post" && method !== "put" && method !== "patch" && method !== "delete") return;
+  if (form.querySelector('input[name="csrf_token"]')) return;
+  const token = window.SpeakEdCsrf.token();
+  if (!token) return;
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "csrf_token";
+  input.value = token;
+  form.appendChild(input);
+});
+

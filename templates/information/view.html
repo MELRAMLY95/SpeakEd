@@ -11,6 +11,7 @@
     <div class="header-actions">
       <a class="btn btn-ghost" href="{{ url_for('information.edit', info_id=info.id) }}">Edit</a>
       <form class="delete-form" method="POST" action="{{ url_for('information.delete', info_id=info.id) }}" onsubmit="return confirm('Are you sure you want to delete this information?');">
+        {% include "_csrf.html" %}
         <button type="submit" class="btn btn-ghost">Delete</button>
       </form>
     </div>

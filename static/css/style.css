@@ -451,6 +451,7 @@ small, .text-sm { font-size: var(--text-sm); }
 .nav a:not(.btn):hover::after { width: 40%; }
 .nav .btn::after { display: none; }
 .nav .btn { font-size: var(--text-sm); padding: 10px 20px; }
+.nav .logout-form { display: inline; margin: 0; }
 
 /* Mobile menu button — hidden until the nav collapses. */
 .nav-toggle {

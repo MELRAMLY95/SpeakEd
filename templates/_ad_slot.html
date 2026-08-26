@@ -1,0 +1,30 @@
+{% if ad_slot %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/ads.css') }}">
+<aside class="ad-slot" data-ad-slot="{{ ad_slot.name }}" data-ad-live="{{ 1 if ad_slot.live else 0 }}" aria-label="Advertisement">
+  <p class="ad-label">Advertisement</p>
+  {% if ad_slot.needs_consent %}
+    <form class="ad-consent" method="post" action="{{ url_for('ads.consent') }}">
+      {% include "_csrf.html" %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <p>SpeakEd may show one small non-personalized advertisement on this page. Exam pages never show advertisements.</p>
+      <button class="btn btn-ghost btn-sm" type="submit" name="choice" value="allow">Allow</button>
+      <button class="btn btn-ghost btn-sm" type="submit" name="choice" value="deny">No advertisements</button>
+    </form>
+  {% elif ad_slot.live and ad_slot.provider == "adsense" and ad_slot.client_id and ad_slot.slot_id %}
+    <div class="ad-frame">
+      <ins class="adsbygoogle"
+           data-ad-client="{{ ad_slot.client_id }}"
+           data-ad-slot="{{ ad_slot.slot_id }}"
+           data-ad-format="horizontal"
+           data-full-width-responsive="true"
+           data-npa="1"
+           data-tag-for-under-age-of-consent="1"
+           {% if ad_slot.test_mode %}data-adtest="on"{% endif %}></ins>
+    </div>
+    <script src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ ad_slot.client_id }}" async crossorigin="anonymous"></script>
+    <script src="{{ url_for('static', filename='js/ads.js') }}" defer></script>
+  {% else %}
+    <div class="ad-frame" data-ad-empty="1"></div>
+  {% endif %}
+</aside>
+{% endif %}

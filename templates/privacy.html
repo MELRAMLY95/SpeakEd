@@ -8,11 +8,19 @@
   <ul>
     <li>Exam transcripts (text of what you said), scores, feedback, and self-evaluations.</li>
     <li>Which prompts you have already received, so questions do not repeat.</li>
-    <li>Audio is not stored permanently by default. Microphone audio is processed in the browser for speech-to-text.</li>
+    <li>Audio is not stored permanently by default (<code>STORE_AUDIO=false</code>). Microphone recordings are used to transcribe and mark the attempt, then deleted afterwards unless an administrator explicitly enables storage.</li>
   </ul>
   <h2>AI providers</h2>
   <p>The first version uses a local or rule-based examiner. If a local model such as Ollama is running, transcripts may be sent to that local service on your machine. Paid cloud APIs are not required. If an administrator later enables a cloud provider, transcripts would be sent to that provider to generate examiner questions and feedback.</p>
   <h2>How long</h2>
   <p>Results remain in your account until the account is removed. SpeakEd is an educational practice tool, not Pearson Edexcel.</p>
+  <h2>Advertisements</h2>
+  <p>Advertisements are optional and off unless the site operator enables them. When they are on, SpeakEd may show one small, labelled, non-personalized advertisement on the home page, dashboard, this privacy page, and the information list. Advertisements are never shown during exams, practice, recording, marking, or results. Premium accounts do not see advertisements. SpeakEd does not send your email, password, exam answers, scores, audio, AI conversations, or private profile details to an advertising provider.</p>
+  <h2>Payments</h2>
+  <p>If you subscribe to Premium, card details are entered on the payment provider’s page (Stripe). SpeakEd stores only the provider customer and subscription ids, plan, status, and billing period dates. SpeakEd does not store card numbers or CVV.</p>
 </article>
+<div class="wrap">
+{% set ad_slot = ad_context('privacy') %}
+{% include "_ad_slot.html" %}
+</div>
 {% endblock %}

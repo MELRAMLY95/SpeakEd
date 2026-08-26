@@ -1,0 +1,24 @@
+.billing-hero { padding-top: var(--s-7); max-width: 72ch; }
+.billing-hero h1 { margin-bottom: var(--s-3); }
+.billing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--s-5);
+  margin: var(--s-6) auto var(--s-5);
+}
+.billing-card {
+  padding: var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+}
+.billing-card h2 { margin-top: 0; }
+.billing-price { font-size: var(--text-3xl); font-family: var(--font-display); margin: var(--s-2) 0; }
+.billing-period { color: var(--muted); margin-bottom: var(--s-4); }
+.billing-card ul { padding-left: 1.2em; margin: 0 0 var(--s-5); }
+.billing-card li { margin-bottom: var(--s-2); }
+.billing-note { color: var(--muted); font-size: var(--text-sm); max-width: 72ch; }
+.plan-line { font-size: var(--text-sm); color: var(--muted); }
+@media (max-width: 640px) {
+  .billing-grid { grid-template-columns: 1fr; }
+}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/billing.css') }}">{% endblock %}
+{% block title %}Payment{% endblock %}
+{% block content %}
+<section class="wrap billing-hero">
+  <h1>Payment confirmation</h1>
+  {% if snapshot.premium %}
+    <p class="lead">Premium is active on your account. Thank you.</p>
+  {% else %}
+    <p class="lead">If you paid just now, Premium will appear as soon as the payment provider confirms the subscription. Refresh this page in a moment. Opening checkout alone does not unlock Premium.</p>
+  {% endif %}
+  <p><a class="btn btn-primary" href="{{ url_for('billing.manage') }}">View your plan</a></p>
+</section>
+{% endblock %}

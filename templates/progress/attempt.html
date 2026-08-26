@@ -24,6 +24,7 @@
       <h2>Marks were not generated</h2>
       <p>This {{ attempt.type_label }} attempt was saved, but the AI examiner did not record a score. You can retry marking now without sitting the task again.</p>
       <form method="post" action="{{ retry_url }}">
+        {% include "_csrf.html" %}
         <button class="btn btn-primary" type="submit">Retry marking</button>
       </form>
     </section>

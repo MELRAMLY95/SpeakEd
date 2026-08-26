@@ -297,9 +297,9 @@ class ExamEngine:
             _save_payload(attempt_id, payload)
             cleanup_attempt_audio(attempt_id)
             return {"marking": marking, "feedback": feedback, "unavailable": False}
-        except Exception as exc:
+        except Exception:
             logger.exception("Marking failed for attempt %s", attempt_id)
-            error = str(exc)
+            error = "The examiner could not complete marking. Use Retry marking."
             try:
                 row = query_one("SELECT * FROM attempts WHERE id = ? AND user_id = ?", (attempt_id, user_id))
                 if row is not None:

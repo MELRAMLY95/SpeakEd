@@ -10,8 +10,14 @@
     <p class="eyebrow">Student dashboard</p>
     <h1>Welcome, {{ current_user.name }}</h1>
     <p>{{ disclaimer }}</p>
+    <p class="plan-line">{% if is_premium %}Current plan: Premium{% else %}Current plan: Free{% endif %} · <a href="{{ url_for('billing.pricing') }}">View plans</a></p>
     <div class="hero-actions">
       <a class="btn btn-primary" href="{{ url_for('exam.intro') }}">Start full exam</a>
+      {% if not is_premium %}
+        <a class="btn btn-ghost" href="{{ url_for('billing.pricing') }}">Upgrade to Premium</a>
+      {% else %}
+        <a class="btn btn-ghost" href="{{ url_for('billing.manage') }}">Manage subscription</a>
+      {% endif %}
     </div>
   </div>
 </section>
@@ -46,4 +52,8 @@
   </ul>
 </section>
 {% endif %}
+<div class="wrap">
+{% set ad_slot = ad_context('dashboard') %}
+{% include "_ad_slot.html" %}
+</div>
 {% endblock %}

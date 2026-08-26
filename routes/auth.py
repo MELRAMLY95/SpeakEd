@@ -6,11 +6,17 @@ import secrets
 from datetime import datetime, timedelta, timezone
 from functools import wraps
 
-from flask import flash, g, redirect, render_template, request, session, url_for
+from flask import current_app, flash, g, redirect, render_template, request, session, url_for
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from database.database import execute, query_one
 from routes import auth_bp
+from security import (
+    auth_is_rate_limited,
+    clear_auth_failures,
+    record_auth_failure,
+    safe_next_path,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +47,9 @@ def signup():
     if g.user:
         return redirect(url_for("dashboard.home"))
     if request.method == "POST":
+        if auth_is_rate_limited("signup"):
+            flash("Too many account attempts. Please wait a few minutes and try again.", "error")
+            return render_template("auth/signup.html"), 429
         name = (request.form.get("name") or "").strip()
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
@@ -57,6 +66,7 @@ def signup():
         if query_one("SELECT id FROM users WHERE email = ?", (email,)):
             errors.append("An account with this email already exists.")
         if errors:
+            record_auth_failure("signup")
             for item in errors:
                 flash(item, "error")
             return render_template("auth/signup.html")
@@ -69,6 +79,7 @@ def signup():
         session.clear()
         session["user_id"] = user["id"]
         session.permanent = True
+        clear_auth_failures("signup")
         return redirect(url_for("dashboard.home"))
     return render_template("auth/signup.html")
 
@@ -78,31 +89,31 @@ def login():
     if g.user:
         return redirect(url_for("dashboard.home"))
     if request.method == "POST":
+        if auth_is_rate_limited("login"):
+            flash("Too many sign-in attempts. Please wait a few minutes and try again.", "error")
+            return render_template("auth/login.html"), 429
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
         user = query_one("SELECT * FROM users WHERE email = ?", (email,))
-        if user is None:
-            # Same message either way so the form never reveals which emails
-            # exist; the reason is recorded server-side only.
-            logger.warning("Login failed: no account found for %s", email)
-            flash("Incorrect email or password.", "error")
-            return render_template("auth/login.html")
-        if not check_password_hash(user["password_hash"], password):
-            logger.warning("Login failed: password mismatch for user id %s", user["id"])
+        # Same public message either way so the form never reveals which emails exist.
+        if user is None or not check_password_hash(user["password_hash"], password):
+            record_auth_failure("login")
+            logger.warning("Login failed for a sign-in attempt")
             flash("Incorrect email or password.", "error")
             return render_template("auth/login.html")
         session.clear()
         session["user_id"] = user["id"]
         session.permanent = True
-        nxt = request.args.get("next") or url_for("dashboard.home")
-        if not nxt.startswith("/"):
-            nxt = url_for("dashboard.home")
+        clear_auth_failures("login")
+        nxt = safe_next_path(request.args.get("next"), url_for("dashboard.home"))
         return redirect(nxt)
     return render_template("auth/login.html")
 
 
-@auth_bp.route("/logout")
+@auth_bp.route("/logout", methods=["GET", "POST"])
 def logout():
+    if request.method == "GET" and current_app.config.get("CSRF_PROTECT", True):
+        return redirect(url_for("home"))
     session.clear()
     flash("You have signed out.", "info")
     return redirect(url_for("home"))
@@ -110,11 +121,14 @@ def logout():
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    reset_url = None
     if request.method == "POST":
+        if auth_is_rate_limited("forgot"):
+            flash("Too many reset attempts. Please wait a few minutes and try again.", "error")
+            return render_template("auth/forgot_password.html"), 429
         email = (request.form.get("email") or "").strip().lower()
         user = query_one("SELECT * FROM users WHERE email = ?", (email,))
         flash("If that email is registered, a reset link has been created.", "info")
+        record_auth_failure("forgot")
         if user:
             token = secrets.token_urlsafe(32)
             token_hash = hashlib.sha256(token.encode()).hexdigest()
@@ -123,8 +137,11 @@ def forgot_password():
                 "INSERT INTO password_resets (user_id, token_hash, expires_at, used) VALUES (?, ?, ?, 0)",
                 (user["id"], token_hash, expires),
             )
-            reset_url = url_for("auth.reset_password", token=token, _external=True)
-    return render_template("auth/forgot_password.html", reset_url=reset_url)
+            # Never put the raw token in the HTTP response. Local debug logs only.
+            if current_app.config.get("DEBUG") and not current_app.config.get("IS_PRODUCTION"):
+                reset_url = url_for("auth.reset_password", token=token, _external=True)
+                logger.info("Password reset URL (local debug only): %s", reset_url)
+    return render_template("auth/forgot_password.html")
 
 
 @auth_bp.route("/reset-password/<token>", methods=["GET", "POST"])
@@ -148,6 +165,7 @@ def reset_password(token):
             (generate_password_hash(password), _now().isoformat(), row["user_id"]),
         )
         execute("UPDATE password_resets SET used = 1 WHERE id = ?", (row["id"],))
+        session.clear()
         flash("Your password has been updated. Please sign in.", "success")
         return redirect(url_for("auth.login"))
     return render_template("auth/forgot_password.html", reset_mode=True, token=token)

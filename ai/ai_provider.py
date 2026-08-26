@@ -1,8 +1,11 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
+import logging
 
 from ai.json_util import parse_json_object
+
+logger = logging.getLogger(__name__)
 
 
 def _is_quota_error(exc: Exception) -> bool:
@@ -211,5 +214,5 @@ def get_ai():
         if provider and provider.is_available():
             return provider
     except Exception as e:
-        print(f"Could not get AI provider: {e}")
+        logger.warning("Could not get AI provider: %s", e)
     return None

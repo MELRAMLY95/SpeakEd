@@ -1,12 +1,15 @@
-from flask import flash, g, jsonify, redirect, render_template, request, url_for
+from flask import abort, current_app, flash, g, jsonify, redirect, render_template, request, url_for
 import json
 import logging
 
-from ai.examiner import ExamEngine, _row_dict
+from ai.examiner import ExamEngine
 from ai.speech import SpeechError, process_upload
-from database.database import query_all, query_one
+from database.database import query_one
 from routes import exam_bp
 from routes.auth import login_required
+from plans import PRACTICE_EXAM, RETRY_MARKING
+from security import consume_rate
+from subscriptions import consume_usage
 from services.image_fetcher import get_image_fetcher
 
 logger = logging.getLogger(__name__)
@@ -28,6 +31,17 @@ def intro():
 @exam_bp.route("/exam/start", methods=["POST"])
 @login_required
 def start():
+    if consume_rate(
+        "exam_start",
+        str(g.user["id"]),
+        int(current_app.config.get("EXAM_START_MAX") or 40),
+        float(current_app.config.get("EXAM_START_WINDOW") or 3600),
+    ):
+        flash("Please wait before starting another attempt.", "error")
+        return redirect(url_for("exam.intro"))
+    if not consume_usage(g.user, PRACTICE_EXAM):
+        flash("You have used this month's Free speaking attempts. Upgrade to Premium for more practice this month.", "error")
+        return redirect(url_for("billing.pricing"))
     exam_type = request.form.get("exam_type") or "full"
     mode = request.form.get("mode") or "full"
     topic = request.form.get("topic_title") or ""
@@ -50,7 +64,7 @@ def refresh_images():
 def room(attempt_id):
     attempt = _owned(attempt_id)
     if attempt is None:
-        return redirect(url_for("dashboard.home"))
+        abort(404)
     template = {
         "preparation": "exam/intro.html",
         "warmup": "exam/warmup.html",
@@ -78,8 +92,8 @@ def room(attempt_id):
                     picture_card["image"] = image_fetcher.get_image_for_topic("school")
                 elif "work" in original_image:
                     picture_card["image"] = image_fetcher.get_image_for_topic("work")
-        except Exception as e:
-            print(f"Error injecting image URLs: {e}")
+        except Exception:
+            logger.exception("Error injecting image URLs")
             # Continue without image injection
     
     return render_template(template, attempt=attempt, state=state)
@@ -162,6 +176,17 @@ def retry_marking(attempt_id):
     attempt = _owned(attempt_id)
     if attempt is None:
         return redirect(url_for("dashboard.home"))
+    if consume_rate(
+        "retry_marking",
+        str(g.user["id"]),
+        int(current_app.config.get("RETRY_MARKING_MAX") or 10),
+        float(current_app.config.get("RETRY_MARKING_WINDOW") or 3600),
+    ):
+        flash("Please wait before retrying marking again.", "error")
+        return redirect(url_for("progress.attempt", attempt_id=attempt_id))
+    if not consume_usage(g.user, RETRY_MARKING):
+        flash("You have used this month's Free marking retries. Upgrade to Premium for more.", "error")
+        return redirect(url_for("billing.pricing"))
     try:
         finished = engine.retry_marking(attempt_id, g.user["id"])
     except Exception:
@@ -179,10 +204,13 @@ def retry_marking(attempt_id):
 def results(attempt_id):
     attempt = _owned(attempt_id)
     if attempt is None:
-        return redirect(url_for("dashboard.home"))
+        abort(404)
     if attempt["status"] == "in_progress":
-        engine.finish(attempt_id, g.user["id"])
-        attempt = _owned(attempt_id)
+        if attempt["stage"] == "complete" or engine.needs_marking(attempt):
+            engine.finish(attempt_id, g.user["id"])
+            attempt = _owned(attempt_id)
+        else:
+            return redirect(url_for("exam.room", attempt_id=attempt_id))
     attempt = engine.restore_scores_from_marking(attempt)
     marking_row = query_one("SELECT * FROM markings WHERE attempt_id = ?", (attempt_id,))
     feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
@@ -194,19 +222,6 @@ def results(attempt_id):
                 marking = loaded
         except json.JSONDecodeError:
             marking = {}
-    if marking and not marking.get("unavailable") and not feedback_row:
-        from ai.feedback import build_feedback
-
-        transcripts = [_row_dict(r) for r in query_all("SELECT * FROM transcripts WHERE attempt_id = ? ORDER BY id", (attempt_id,))]
-        payload = {}
-        if attempt.get("payload_json"):
-            try:
-                payload = json.loads(attempt["payload_json"] or "{}")
-            except json.JSONDecodeError:
-                payload = {}
-        payload.update(engine._marking_payload(payload, attempt_id, exam_type=attempt["exam_type"]))
-        build_feedback(attempt_id, marking, transcripts, payload=payload)
-        feedback_row = query_one("SELECT * FROM feedback WHERE attempt_id = ?", (attempt_id,))
     feedback = None
     if feedback_row:
         feedback = {

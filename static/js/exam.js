@@ -103,6 +103,7 @@
     try {
       const response = await fetch(`/exam/${attemptId}/turn`, {
         method: "POST",
+        headers: window.SpeakEdCsrf ? window.SpeakEdCsrf.headers() : {},
         body: form,
       });
       state = await response.json();

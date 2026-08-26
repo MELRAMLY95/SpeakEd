@@ -7,6 +7,7 @@ from flask import current_app, g
 
 from config import BASE_DIR
 from database.models import POSTGRES_SCHEMA, SCHEMA
+from security import redact_secrets
 
 logger = logging.getLogger(__name__)
 
@@ -116,9 +117,9 @@ def get_db():
             except Exception as exc:
                 # Never fall back to SQLite here: a silent fallback in production
                 # writes accounts to a disk that is wiped on redeploy.
-                logger.error("PostgreSQL connection failed: %s", exc)
+                logger.error("PostgreSQL connection failed: %s", redact_secrets(exc))
                 raise RuntimeError(
-                    f"Could not connect to PostgreSQL: {exc}. Check DATABASE_URL, credentials, "
+                    "Could not connect to PostgreSQL. Check DATABASE_URL, credentials, "
                     "and that the database accepts connections."
                 ) from exc
         else:
@@ -172,9 +173,43 @@ def init_db(app=None):
             raise
         finally:
             cursor.close()
+        _ensure_is_premium_column()
         return
     db.executescript(schema)
     db.commit()
+    _ensure_is_premium_column()
+
+
+def _ensure_is_premium_column():
+    """Add is_premium on existing databases without rebuilding the users table."""
+    db = get_db()
+    kind = g.get("db_kind") or engine_kind(current_app.config["DATABASE_URL"])
+    if kind == "postgres":
+        cursor = db.cursor()
+        try:
+            cursor.execute("SELECT is_premium FROM users LIMIT 1")
+            try:
+                cursor.fetchall()
+            except Exception:
+                pass
+            return
+        except Exception:
+            db.rollback()
+        cursor = db.cursor()
+        try:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_premium INTEGER NOT NULL DEFAULT 0")
+            db.commit()
+        except Exception as exc:
+            db.rollback()
+            message = str(exc).lower()
+            if "duplicate" in message or "already exists" in message:
+                return
+            raise
+        return
+    columns = {row[1] for row in db.execute("PRAGMA table_info(users)")}
+    if "is_premium" not in columns:
+        db.execute("ALTER TABLE users ADD COLUMN is_premium INTEGER NOT NULL DEFAULT 0")
+        db.commit()
 
 
 def query_one(sql, args=()):

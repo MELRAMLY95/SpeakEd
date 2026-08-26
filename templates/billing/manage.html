@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block extra_css %}<link rel="stylesheet" href="{{ url_for('static', filename='css/billing.css') }}"><link rel="stylesheet" href="{{ url_for('static', filename='css/home.css') }}">{% endblock %}
+{% block title %}Subscription{% endblock %}
+{% block content %}
+<section class="wrap billing-hero">
+  <p class="eyebrow">Your plan</p>
+  <h1>{{ snapshot.plan.name }}</h1>
+  <p class="lead">Status: {{ snapshot.status }}{% if snapshot.premium %} · Premium features are active{% endif %}</p>
+</section>
+<section class="wrap billing-card">
+  <h2>This month</h2>
+  <ul>
+    <li>Speaking attempts: {{ snapshot.usage.practice_exam.used }}{% if snapshot.usage.practice_exam.limit is not none %} / {{ snapshot.usage.practice_exam.limit }}{% else %} (unlimited){% endif %}</li>
+    <li>Marking retries: {{ snapshot.usage.retry_marking.used }}{% if snapshot.usage.retry_marking.limit is not none %} / {{ snapshot.usage.retry_marking.limit }}{% else %} (unlimited){% endif %}</li>
+    <li>Information requests: {{ snapshot.usage.info_gen.used }}{% if snapshot.usage.info_gen.limit is not none %} / {{ snapshot.usage.info_gen.limit }}{% else %} (unlimited){% endif %}</li>
+  </ul>
+  {% if snapshot.subscription and snapshot.subscription.current_period_end %}
+    <p>Current period ends {{ snapshot.subscription.current_period_end[:10] }}.</p>
+  {% endif %}
+  <div class="hero-actions">
+    {% if not snapshot.premium %}
+      <form method="post" action="{{ url_for('billing.checkout') }}">
+        {% include "_csrf.html" %}
+        <button class="btn btn-primary" type="submit">Upgrade to Premium — {{ premium_price }}</button>
+      </form>
+    {% else %}
+      <form method="post" action="{{ url_for('billing.portal') }}">
+        {% include "_csrf.html" %}
+        <button class="btn btn-ghost" type="submit">Open billing portal</button>
+      </form>
+      <form method="post" action="{{ url_for('billing.cancel') }}" onsubmit="return confirm('Cancel Premium at the end of the current billing period? Your results stay in your account.');">
+        {% include "_csrf.html" %}
+        <button class="btn btn-ghost" type="submit">Cancel Premium</button>
+      </form>
+    {% endif %}
+  </div>
+  <p><a href="{{ url_for('billing.pricing') }}">Compare plans</a>. Cancelling does not delete your exams, scores, or progress.</p>
+</section>
+{% endblock %}

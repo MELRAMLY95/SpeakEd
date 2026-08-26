@@ -55,6 +55,9 @@ TABLE_ORDER = [
     "feedback",
     "self_evaluations",
     "gathered_info",
+    "subscriptions",
+    "webhook_events",
+    "usage_counters",
 ]
 
 # Columns that must never be echoed to the console.

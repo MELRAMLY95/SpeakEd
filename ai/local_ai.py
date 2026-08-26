@@ -187,7 +187,7 @@ class OllamaProvider(AIProvider):
         try:
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
-            print(f"Ollama text generation failed: {e}")
+            logger.warning("Ollama text generation failed: %s", e)
             raise
 
 
@@ -468,7 +468,7 @@ class GeminiProvider(AIProvider):
         try:
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
-            print(f"Gemini text generation failed: {e}")
+            logger.warning("Gemini text generation failed: %s", e)
             raise
 
 
@@ -554,7 +554,7 @@ class ZAIProvider(AIProvider):
         try:
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
-            print(f"Z.AI text generation failed: {e}")
+            logger.warning("Z.AI text generation failed: %s", e)
             raise
 
 
@@ -614,7 +614,7 @@ class OpenAIProvider(AIProvider):
         try:
             return self.generate(messages, temperature=temperature, json_mode=json_mode, max_tokens=max_tokens)
         except Exception as e:
-            print(f"OpenAI text generation failed: {e}")
+            logger.warning("OpenAI text generation failed: %s", e)
             raise
 
 

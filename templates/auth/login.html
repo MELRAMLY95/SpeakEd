@@ -12,6 +12,7 @@
     <h1>Sign in to continue practising</h1>
   </div>
   <form method="post" novalidate>
+    {% include "_csrf.html" %}
     <label>Email <input type="email" name="email" required autocomplete="email"></label>
     <label>Password <input type="password" name="password" required autocomplete="current-password"></label>
     <button class="btn btn-primary" type="submit">Sign in</button>

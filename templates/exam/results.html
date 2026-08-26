@@ -28,6 +28,7 @@
       {% if state and state.marking_error %}<p>{{ state.marking_error }}</p>{% endif %}
       {% if marking and marking.error %}<p>{{ marking.error }}</p>{% endif %}
       <form method="post" action="{{ url_for('exam.retry_marking', attempt_id=attempt.id) }}">
+        {% include "_csrf.html" %}
         <button class="btn btn-primary btn-sm" type="submit">Retry marking</button>
       </form>
     </div>

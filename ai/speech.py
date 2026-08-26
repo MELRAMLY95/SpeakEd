@@ -107,6 +107,9 @@ def validate_audio_bytes(data: bytes, mime_type: str, filename: str = "turn.webm
         raise SpeechError("oversized_recording", "The recording is too large. Give a shorter answer and try again.")
     if duration_ms and duration_ms < MIN_DURATION_MS:
         raise SpeechError("short_recording", "The recording was too short. Please answer again.")
+    stripped = data.lstrip()[:16].lower()
+    if data.startswith(b"MZ") or data.startswith(b"\x7fELF") or stripped.startswith(b"<!doctype") or stripped.startswith(b"<html"):
+        raise SpeechError("invalid_audio", "That audio format is not supported. Try Chrome or Edge with the microphone enabled.")
     return ext
 
 
@@ -127,7 +130,12 @@ def save_turn_audio(attempt_id: int, data: bytes, ext: str) -> str:
 def read_audio_file(path: str | None) -> tuple[bytes | None, str | None]:
     if not path:
         return None, None
-    file_path = Path(path)
+    file_path = Path(path).resolve()
+    root = (Path(current_app.instance_path) / "exam_audio").resolve()
+    try:
+        file_path.relative_to(root)
+    except ValueError:
+        return None, None
     if not file_path.is_file():
         return None, None
     ext = file_path.suffix.lower()

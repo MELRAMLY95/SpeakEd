@@ -32,6 +32,7 @@
               <a class="btn btn-ghost btn-sm" href="{{ url_for('progress.attempt', attempt_id=row.id) }}">View</a>
               {% if row.needs_marking %}
                 <form method="post" action="{{ url_for('exam.retry_marking', attempt_id=row.id) }}">
+                  {% include "_csrf.html" %}
                   <button class="btn btn-primary btn-sm" type="submit">Retry marking</button>
                 </form>
               {% endif %}

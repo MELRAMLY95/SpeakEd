@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}SpeakEd{% endblock %} · 4XES2 Speaking</title>
   <meta name="color-scheme" content="light dark">
+  <meta name="csrf-token" content="{{ csrf_token }}">
   <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -31,10 +32,15 @@
           <a href="{{ url_for('progress.home') }}">Progress</a>
           <a href="{{ url_for('evaluation.home') }}">Evaluation</a>
           <a href="{{ url_for('information.home') }}">Gain Information</a>
+          <a href="{{ url_for('billing.pricing') }}">Pricing</a>
           <a href="{{ url_for('auth.account') }}">Account</a>
-          <a class="btn btn-ghost" href="{{ url_for('auth.logout') }}">Sign out</a>
+          <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
+            {% include "_csrf.html" %}
+            <button class="btn btn-ghost" type="submit">Sign out</button>
+          </form>
         {% else %}
           <a href="{{ url_for('home') }}#about">About</a>
+          <a href="{{ url_for('billing.pricing') }}">Pricing</a>
           <a href="{{ url_for('privacy') }}">Privacy</a>
           <a href="{{ url_for('auth.login') }}">Sign in</a>
           <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Create account</a>

@@ -84,6 +84,9 @@ def test_schema_initialises_on_real_postgres(pg_app):
         "prompt_usage",
         "password_resets",
         "gathered_info",
+        "subscriptions",
+        "webhook_events",
+        "usage_counters",
     ):
         assert expected in names, f"table {expected} was not created"
 
@@ -469,8 +472,8 @@ def test_user_isolation_on_real_postgres(pg_app, monkeypatch):
     _signup(client_b, "userb@example.com", name="User B")
 
     assert client_b.get(f"/history/{attempt_a}").status_code == 404
-    room = client_b.get(f"/exam/{attempt_a}", follow_redirects=False)
-    assert room.status_code == 302
+    assert client_b.get(f"/exam/{attempt_a}").status_code == 404
+    assert client_b.get(f"/exam/{attempt_a}/results").status_code == 404
     assert client_b.get(f"/exam/{attempt_a}/state").status_code == 404
     assert client_b.post(f"/exam/{attempt_a}/turn", json={"transcript": "hi"}).status_code == 404
 

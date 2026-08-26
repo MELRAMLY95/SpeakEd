@@ -21,6 +21,7 @@
 </section>
 <section class="wrap intro-exam">
   <form method="post" action="{{ url_for('exam.start') }}" class="stack">
+    {% include "_csrf.html" %}
     <input type="hidden" name="exam_type" value="full">
     <input type="hidden" name="mode" value="full">
     <label>Topic talk title (Topic 5 Global Issues — your choice)
@@ -51,6 +52,7 @@
     </div>
     <p>You may make notes. Do not use a dictionary. Preparation in the real exam is 10 minutes.</p>
     <form method="post" action="{{ url_for('exam.begin', attempt_id=state.attempt_id) }}" data-begin-exam>
+      {% include "_csrf.html" %}
       <button class="btn btn-primary" type="submit">I am ready. Start the warm-up.</button>
     </form>
   {% endif %}

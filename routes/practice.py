@@ -1,9 +1,15 @@
-from flask import g, jsonify, redirect, render_template, request, url_for
+from flask import current_app, flash, g, jsonify, redirect, render_template, request, url_for
+import logging
 
 from ai.examiner import ExamEngine
 from routes import practice_bp
 from routes.auth import login_required
+from plans import PRACTICE_EXAM
+from security import consume_rate
+from subscriptions import consume_usage
 from services.image_fetcher import get_image_fetcher
+
+logger = logging.getLogger(__name__)
 
 engine = ExamEngine()
 image_fetcher = get_image_fetcher()
@@ -58,9 +64,8 @@ def picture():
                 card["original_image"] = original_image
         
         return render_template("practice/picture_conversation.html", cards=cards)
-    except Exception as e:
-        print(f"Error loading picture data: {e}")
-        # Return fallback data
+    except Exception:
+        logger.exception("Error loading picture data")
         return render_template("practice/picture_conversation.html", cards=[])
 
 
@@ -68,6 +73,8 @@ def picture():
 @login_required
 def refresh_images():
     """Refresh all image URLs to get new random images."""
+    if consume_rate("refresh_images", str(g.user["id"]), 20, 3600):
+        return jsonify({"success": False, "error": "Please wait before refreshing images again."}), 429
     new_urls = image_fetcher.refresh_all_images()
     return jsonify({"success": True, "urls": new_urls})
 
@@ -75,6 +82,17 @@ def refresh_images():
 @practice_bp.route("/practice/start", methods=["POST"])
 @login_required
 def start():
+    if consume_rate(
+        "exam_start",
+        str(g.user["id"]),
+        int(current_app.config.get("EXAM_START_MAX") or 40),
+        float(current_app.config.get("EXAM_START_WINDOW") or 3600),
+    ):
+        flash("Please wait before starting another attempt.", "error")
+        return redirect(url_for("practice.home"))
+    if not consume_usage(g.user, PRACTICE_EXAM):
+        flash("You have used this month's Free speaking attempts. Upgrade to Premium for more practice this month.", "error")
+        return redirect(url_for("billing.pricing"))
     section = request.form.get("section") or "roleplay"
     topic = request.form.get("topic_title") or ""
     notes = request.form.get("topic_notes") or ""

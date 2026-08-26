@@ -23,6 +23,24 @@ def test_missing_picture_fails_safely():
     assert raised
 
 
+def test_picture_path_traversal_is_rejected():
+    from ai.picture_media import PictureLoadError
+
+    for ref in (
+        "/static/../.env",
+        "/static/images/pictures/../../config.py",
+        "/etc/passwd",
+        "http://127.0.0.1/secret.png",
+        "https://localhost/picture.png",
+    ):
+        try:
+            load_picture_media(ref)
+            ok = True
+        except PictureLoadError:
+            ok = False
+        assert ok is False
+
+
 def test_marking_attaches_picture_bytes():
     scheme = load_scheme()
     ai = FakeAIProvider()

@@ -13,6 +13,7 @@ def _config(**overrides):
         "IS_PRODUCTION": True,
         "DATABASE_URL": "postgresql://u:p@host/db",
         "SECRET_KEY": "a-real-stable-production-secret",
+        "SESSION_COOKIE_SECURE": True,
     }
     base.update(overrides)
     return base
@@ -99,4 +100,30 @@ def test_database_url_env_var_selects_the_engine(monkeypatch):
 def test_session_cookie_is_secure_in_production():
     assert Config.SESSION_COOKIE_HTTPONLY is True
     assert Config.SESSION_COOKIE_SAMESITE == "Lax"
+    assert Config.SESSION_COOKIE_SECURE is Config.IS_PRODUCTION
     assert TestConfig.SESSION_COOKIE_SECURE is False
+
+
+def test_production_requires_secure_session_cookie():
+    with pytest.raises(RuntimeError, match="SESSION_COOKIE_SECURE"):
+        validate_runtime_config(_config(SESSION_COOKIE_SECURE=False))
+
+
+def test_apply_production_security_forces_https_cookies():
+    from flask import Flask
+
+    from security import apply_production_security
+
+    app = Flask(__name__)
+    app.config["IS_PRODUCTION"] = True
+    app.config["SESSION_COOKIE_SECURE"] = False
+    app.config["DEBUG"] = True
+    apply_production_security(app)
+    assert app.config["SESSION_COOKIE_SECURE"] is True
+    assert app.config["PREFERRED_URL_SCHEME"] == "https"
+    assert app.config["DEBUG"] is False
+
+
+def test_production_rejects_debug_mode():
+    with pytest.raises(RuntimeError, match="FLASK_DEBUG=0"):
+        validate_runtime_config(_config(DEBUG=True))

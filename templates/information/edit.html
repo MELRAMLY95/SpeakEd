@@ -12,6 +12,7 @@
   </div>
 
   <form class="form" method="POST" action="{{ url_for('information.edit', info_id=info.id) }}">
+    {% include "_csrf.html" %}
     <div class="form-group">
       <label for="topic">Topic</label>
       <input

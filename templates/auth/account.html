@@ -11,6 +11,7 @@
     <h1>Manage your account</h1>
   </div>
   <form method="post">
+    {% include "_csrf.html" %}
     <label>Name <input type="text" name="name" value="{{ current_user.name }}" required></label>
     <p>Email cannot be changed here: {{ current_user.email }}</p>
     <label>Current password (needed to change password)
@@ -21,5 +22,8 @@
     </label>
     <button class="btn btn-primary" type="submit">Save</button>
   </form>
+  <p>{% if is_premium %}You are on the Premium plan.{% else %}You are on the Free plan.{% endif %}
+     <a href="{{ url_for('billing.manage') }}">Manage subscription</a>
+     · <a href="{{ url_for('billing.pricing') }}">View plans</a></p>
 </section>
 {% endblock %}

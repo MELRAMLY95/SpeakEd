@@ -10,6 +10,14 @@ from routes import evaluation_bp
 from routes.auth import login_required
 
 
+def _bounded_int(raw, lo: int = 0, hi: int = 5) -> int:
+    try:
+        value = int(raw or 0)
+    except (TypeError, ValueError):
+        abort(400)
+    return max(lo, min(hi, value))
+
+
 @evaluation_bp.route("/evaluation")
 @login_required
 def home():
@@ -74,12 +82,12 @@ def self_eval(attempt_id):
                  student_notes=excluded.student_notes""",
             (
                 attempt_id,
-                int(request.form.get("confidence") or 0),
-                int(request.form.get("fluency") or 0),
-                int(request.form.get("difficulty") or 0),
+                _bounded_int(request.form.get("confidence")),
+                _bounded_int(request.form.get("fluency")),
+                _bounded_int(request.form.get("difficulty")),
                 (request.form.get("struggled_with") or "")[:500],
                 (request.form.get("improve_next") or "")[:500],
-                int(request.form.get("satisfaction") or 0),
+                _bounded_int(request.form.get("satisfaction")),
                 (request.form.get("student_notes") or "")[:800],
                 datetime.now(timezone.utc).isoformat(),
             ),

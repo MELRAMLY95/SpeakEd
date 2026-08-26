@@ -37,6 +37,7 @@
           <a href="{{ url_for('information.view', info_id=info.id) }}" class="btn-icon" title="View" aria-label="View {{ info.topic }}"><span aria-hidden="true">👁</span></a>
           <a href="{{ url_for('information.edit', info_id=info.id) }}" class="btn-icon" title="Edit" aria-label="Edit {{ info.topic }}"><span aria-hidden="true">✏️</span></a>
           <form method="POST" action="{{ url_for('information.delete', info_id=info.id) }}" onsubmit="return confirm('Are you sure you want to delete this information?');" class="delete-form-mini">
+            {% include "_csrf.html" %}
             <button type="submit" class="btn-icon" title="Delete" aria-label="Delete {{ info.topic }}"><span aria-hidden="true">🗑</span></button>
           </form>
         </div>
@@ -63,4 +64,8 @@
   </div>
   {% endif %}
 </section>
+<div class="wrap">
+{% set ad_slot = ad_context('information') %}
+{% include "_ad_slot.html" %}
+</div>
 {% endblock %}
