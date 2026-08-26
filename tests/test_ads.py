@@ -197,8 +197,8 @@ def test_live_publisher_shows_auto_ads_without_unit_slot_ids(tmp_path):
     assert home.status_code == 200
     assert b"ca-pub-3990201330574869" in home.data
     assert b"googlesyndication.com/pagead/js/adsbygoogle.js" in home.data
-    assert b'class="adsbygoogle"' in home.data
-    assert b'data-ad-format="auto"' in home.data
+    assert b'data-ad-auto="1"' in home.data
+    assert b"tag-for-under-age-of-consent" not in home.data
     csp = home.headers.get("Content-Security-Policy") or ""
     assert "pagead2.googlesyndication.com" in csp
     assert "www.gstatic.com" in csp

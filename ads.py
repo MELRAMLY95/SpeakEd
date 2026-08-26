@@ -149,6 +149,6 @@ def build_ad_slot(name: str) -> dict | None:
         "provider": (current_app.config.get("ADS_PROVIDER") or "adsense").strip().lower(),
         "needs_consent": needs_consent,
         "npa": True,
-        "under_age_of_consent": True,
+        "under_age_of_consent": False,
         "test_mode": bool(current_app.config.get("ADS_TEST_MODE", True)),
     }
