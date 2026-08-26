@@ -21,7 +21,6 @@
            data-tag-for-under-age-of-consent="1"
            {% if ad_slot.test_mode %}data-adtest="on"{% endif %}></ins>
     </div>
-    <script src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ ad_slot.client_id }}" async crossorigin="anonymous"></script>
     <script src="{{ url_for('static', filename='js/ads.js') }}" defer></script>
   {% else %}
     <div class="ad-frame" data-ad-empty="1"></div>

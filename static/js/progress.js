@@ -147,4 +147,5 @@ if (canvas) {
   });
 
   window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
+  document.addEventListener("speaked-themechange", draw);
 }

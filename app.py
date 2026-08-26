@@ -1,6 +1,6 @@
 import logging
 
-from flask import Flask, g, jsonify, render_template, request
+from flask import Flask, g, jsonify, render_template, request, send_from_directory
 
 from config import Config, validate_runtime_config
 from database.database import close_db, engine_kind, init_db, query_one
@@ -59,14 +59,17 @@ def create_app(config_object=None):
 
     @app.context_processor
     def inject_globals():
-        from ads import build_ad_slot
+        from ads import adsense_script_allowed, build_ad_slot, publisher_id
         from subscriptions import is_premium
 
+        show_adsense_script = adsense_script_allowed()
         return {
             "current_user": g.get("user"),
             "csrf_token": csrf_token(),
             "ad_context": build_ad_slot,
             "is_premium": is_premium(g.get("user")),
+            "show_adsense_script": show_adsense_script,
+            "adsense_client_id": publisher_id() if show_adsense_script else "",
             "disclaimer": (
                 "AI-generated marks are estimates for practice purposes and are not official Pearson Edexcel marks or grades."
             ),
@@ -97,6 +100,15 @@ def create_app(config_object=None):
     @app.route("/privacy")
     def privacy():
         return render_template("privacy.html")
+
+    @app.route("/ads.txt")
+    @app.route("/ad.txt")
+    def ads_txt():
+        return send_from_directory(
+            app.static_folder,
+            "ads.txt",
+            mimetype="text/plain; charset=utf-8",
+        )
 
     with app.app_context():
         init_db()

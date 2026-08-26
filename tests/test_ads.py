@@ -69,6 +69,16 @@ def test_placeholder_publisher_id_is_not_live():
     assert is_live_publisher("ca-pub-XXXXXXXXXXXXXXXX") is False
     assert is_live_publisher("") is False
     assert is_live_publisher("ca-pub-1234567890123456") is True
+    assert is_live_publisher("ca-pub-3990201330574869") is True
+
+
+def test_ads_txt_is_served_at_the_site_root(client):
+    expected = b"google.com, pub-3990201330574869, DIRECT, f08c47fec0942fa0"
+    for path in ("/ads.txt", "/ad.txt"):
+        response = client.get(path)
+        assert response.status_code == 200, path
+        assert expected in response.data
+        assert "text/plain" in (response.content_type or "")
 
 
 def test_path_forbids_exam_and_practice():
@@ -129,6 +139,46 @@ def test_premium_user_does_not_see_ads(ads_app, ads_client):
     assert b"ad-slot" not in ads_client.get("/").data
     assert b"ad-slot" not in ads_client.get("/privacy").data
     assert b"ad-slot" not in ads_client.get("/information/").data
+
+
+def test_live_publisher_script_is_on_approved_pages_only(live_ads_client):
+    snippet = (
+        b'<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js'
+        b'?client=ca-pub-1234567890123456"\n     crossorigin="anonymous"></script>'
+    )
+    home = live_ads_client.get("/")
+    assert home.status_code == 200
+    assert snippet in home.data
+    assert live_ads_client.get("/privacy").data.count(snippet) == 1
+    for path in ("/login", "/signup", "/pricing"):
+        response = live_ads_client.get(path)
+        assert response.status_code == 200, path
+        assert b"googlesyndication.com" not in response.data, path
+
+    signup(live_ads_client)
+    assert snippet in live_ads_client.get("/dashboard").data
+    assert snippet in live_ads_client.get("/information/").data
+
+    for path in ("/pricing", "/practice", "/evaluation", "/account", "/information/new"):
+        response = live_ads_client.get(path)
+        assert response.status_code == 200, path
+        assert b"googlesyndication.com" not in response.data, path
+
+
+def test_premium_user_does_not_get_adsense_script(live_ads_app, live_ads_client):
+    signup(live_ads_client)
+    with live_ads_app.app_context():
+        from database.database import query_one
+        from subscriptions import activate_test_subscription
+
+        user = query_one("SELECT id FROM users WHERE email = ?", ("student@example.com",))
+        activate_test_subscription(user["id"])
+
+    for path in ("/", "/privacy", "/dashboard", "/information/"):
+        response = live_ads_client.get(path)
+        assert response.status_code == 200, path
+        assert b"googlesyndication.com" not in response.data, path
+        assert b"ad-slot" not in response.data, path
 
 
 def test_ads_never_appear_during_an_active_exam(ads_client, monkeypatch):

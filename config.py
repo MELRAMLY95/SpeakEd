@@ -80,9 +80,9 @@ class Config:
     PREP_SECONDS = 600
     # Advertising is off until an operator explicitly enables it. Placeholder
     # publisher IDs never load a third-party script.
-    ADS_ENABLED = _env_flag("ADS_ENABLED", False)
+    ADS_ENABLED = _env_flag("ADS_ENABLED", True)
     ADS_PROVIDER = os.environ.get("ADS_PROVIDER", "adsense")
-    AD_CLIENT_ID = os.environ.get("AD_CLIENT_ID", "ca-pub-XXXXXXXXXXXXXXXX")
+    AD_CLIENT_ID = os.environ.get("AD_CLIENT_ID", "ca-pub-3990201330574869")
     AD_SLOT_HOME = os.environ.get("AD_SLOT_HOME", "")
     AD_SLOT_DASHBOARD = os.environ.get("AD_SLOT_DASHBOARD", "")
     AD_SLOT_INFORMATION = os.environ.get("AD_SLOT_INFORMATION", "")

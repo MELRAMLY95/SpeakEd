@@ -91,6 +91,29 @@ def ads_consent_required() -> bool:
     return bool(current_app.config.get("ADS_CONSENT_REQUIRED"))
 
 
+def path_allows_publisher_script(path: str | None = None) -> bool:
+    normalised = _norm_path(path if path is not None else request.path)
+    if path_forbids_ads(normalised):
+        return False
+    return any(normalised in paths for paths in _SLOT_PATHS.values())
+
+
+def adsense_script_allowed() -> bool:
+    """True when the AdSense publisher script may be placed in the page head."""
+    if not ads_enabled():
+        return False
+    if user_is_premium(g.get("user")):
+        return False
+    if consent_choice() == "deny":
+        return False
+    if not path_allows_publisher_script():
+        return False
+    if not is_live_publisher():
+        return False
+    g.allow_ad_script = True
+    return True
+
+
 def build_ad_slot(name: str) -> dict | None:
     """Return a render payload for one approved slot, or None to show nothing."""
     slot_name = (name or "").strip().lower()

@@ -1,8 +1,9 @@
 /* ==========================================================================
    SpeakEd design system
    Tokens first, then primitives, then components, then responsive.
-   Colour tokens are redefined under prefers-color-scheme: dark, so every
-   component below is written once and themes automatically.
+   Colour tokens follow html[data-theme], with prefers-color-scheme: dark as
+   the fallback when the visitor has not chosen yet. Components are written
+   once and theme from the tokens.
    ========================================================================== */
 
 :root {
@@ -115,8 +116,53 @@
   font-family: var(--font-sans);
 }
 
+html[data-theme="dark"] {
+  --bg: #141018;
+  --bg-ambient-a: rgba(193, 123, 130, 0.14);
+  --bg-ambient-b: rgba(245, 158, 11, 0.08);
+  --surface: #1c161a;
+  --surface-2: #261c20;
+  --surface-3: #322428;
+  --surface-inset: #1a1418;
+  --border: #3a2c30;
+  --border-strong: #4a383c;
+
+  --ink: #f4ecee;
+  --ink-soft: #d4c6c8;
+  --muted: #a8989c;
+
+  --wine: #c17b82;
+  --wine-dark: #e8b4b8;
+  --wine-light: #d49298;
+  --wine-accent: #e8c4c8;
+  --gold: #fbbf24;
+  --gold-light: #fcd34d;
+
+  --brand-contrast: #1a1014;
+  --brand-soft: #2a181c;
+  --brand-ring: rgba(193, 123, 130, 0.36);
+
+  --accent-soft: #2a1c20;
+  --warm-soft: #2a2218;
+  --danger: #f87171;
+  --danger-soft: #2e1417;
+  --ok: #34d399;
+  --ok-soft: #1c2420;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 20px 44px -14px rgba(0, 0, 0, 0.75);
+  --shadow-xl: 0 40px 80px -24px rgba(0, 0, 0, 0.85);
+  --shadow-glow: 0 10px 34px -8px rgba(114, 47, 55, 0.5);
+
+  --gradient-primary: linear-gradient(135deg, #9B3D46 0%, #722F37 100%);
+  --gradient-hero: linear-gradient(135deg, #1a1a2e 0%, #2C1C1E 50%, #722F37 100%);
+  --gradient-subtle: linear-gradient(180deg, #261c20 0%, #1c161a 100%);
+  --gradient-text: linear-gradient(120deg, #e8b4b8 0%, #c17b82 100%);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  html:not([data-theme="light"]) {
     --bg: #141018;
     --bg-ambient-a: rgba(193, 123, 130, 0.14);
     --bg-ambient-b: rgba(245, 158, 11, 0.08);
@@ -168,7 +214,11 @@
 
 * { box-sizing: border-box; }
 
-html { scroll-behavior: smooth; }
+html { scroll-behavior: smooth; color-scheme: light; }
+html[data-theme="dark"] { color-scheme: dark; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) { color-scheme: dark; }
+}
 
 html,
 body {
@@ -452,6 +502,46 @@ small, .text-sm { font-size: var(--text-sm); }
 .nav .btn::after { display: none; }
 .nav .btn { font-size: var(--text-sm); padding: 10px 20px; }
 .nav .logout-form { display: inline; margin: 0; }
+
+.header-end {
+  display: flex;
+  align-items: center;
+  gap: var(--s-3);
+  margin-left: auto;
+}
+
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.theme-toggle:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.theme-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.theme-toggle .icon-sun { display: none; }
+html[data-theme="dark"] .theme-toggle .icon-sun { display: block; }
+html[data-theme="dark"] .theme-toggle .icon-moon { display: none; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme="light"]) .theme-toggle .icon-sun { display: block; }
+  html:not([data-theme="light"]) .theme-toggle .icon-moon { display: none; }
+}
 
 /* Mobile menu button — hidden until the nav collapses. */
 .nav-toggle {

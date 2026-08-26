@@ -6,13 +6,18 @@
   <title>{% block title %}SpeakEd{% endblock %} · 4XES2 Speaking</title>
   <meta name="color-scheme" content="light dark">
   <meta name="csrf-token" content="{{ csrf_token }}">
-  <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+  <meta name="google-adsense-account" content="ca-pub-3990201330574869">
+  <meta name="theme-color" content="#f8fafc">
+  <script src="{{ url_for('static', filename='js/theme.js') }}"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,520;9..144,640&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   {% block extra_css %}{% endblock %}
+  {% if show_adsense_script and adsense_client_id %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client_id }}"
+     crossorigin="anonymous"></script>
+  {% endif %}
 </head>
 <body class="{% block body_class %}{% endblock %}">
   <a class="skip-link" href="#main">Skip to content</a>
@@ -22,30 +27,41 @@
         <img src="{{ url_for('static', filename='images/SpeakEd.svg.png') }}" alt="SpeakEd logo" width="56" height="56">
         <span>SpeakEd</span>
       </a>
-      <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Toggle navigation">
-        <span></span>
-      </button>
-      <nav class="nav" id="site-nav" aria-label="Main">
-        {% if current_user %}
-          <a href="{{ url_for('dashboard.home') }}">Dashboard</a>
-          <a href="{{ url_for('practice.home') }}">Practice</a>
-          <a href="{{ url_for('progress.home') }}">Progress</a>
-          <a href="{{ url_for('evaluation.home') }}">Evaluation</a>
-          <a href="{{ url_for('information.home') }}">Gain Information</a>
-          <a href="{{ url_for('billing.pricing') }}">Pricing</a>
-          <a href="{{ url_for('auth.account') }}">Account</a>
-          <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
-            {% include "_csrf.html" %}
-            <button class="btn btn-ghost" type="submit">Sign out</button>
-          </form>
-        {% else %}
-          <a href="{{ url_for('home') }}#about">About</a>
-          <a href="{{ url_for('billing.pricing') }}">Pricing</a>
-          <a href="{{ url_for('privacy') }}">Privacy</a>
-          <a href="{{ url_for('auth.login') }}">Sign in</a>
-          <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Create account</a>
-        {% endif %}
-      </nav>
+      <div class="header-end">
+        <nav class="nav" id="site-nav" aria-label="Main">
+          {% if current_user %}
+            <a href="{{ url_for('dashboard.home') }}">Dashboard</a>
+            <a href="{{ url_for('practice.home') }}">Practice</a>
+            <a href="{{ url_for('progress.home') }}">Progress</a>
+            <a href="{{ url_for('evaluation.home') }}">Evaluation</a>
+            <a href="{{ url_for('information.home') }}">Gain Information</a>
+            <a href="{{ url_for('billing.pricing') }}">Pricing</a>
+            <a href="{{ url_for('auth.account') }}">Account</a>
+            <form method="post" action="{{ url_for('auth.logout') }}" class="logout-form">
+              {% include "_csrf.html" %}
+              <button class="btn btn-ghost" type="submit">Sign out</button>
+            </form>
+          {% else %}
+            <a href="{{ url_for('home') }}#about">About</a>
+            <a href="{{ url_for('billing.pricing') }}">Pricing</a>
+            <a href="{{ url_for('privacy') }}">Privacy</a>
+            <a href="{{ url_for('auth.login') }}">Sign in</a>
+            <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Create account</a>
+          {% endif %}
+        </nav>
+        <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">
+          <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M21 14.3A8.4 8.4 0 0 1 9.7 3 7.2 7.2 0 1 0 21 14.3z"></path>
+          </svg>
+          <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2"></circle>
+            <path d="M12 3v1.6M12 19.4V21M4.9 4.9l1.1 1.1M18 18l1.1 1.1M3 12h1.6M19.4 12H21M4.9 19.1l1.1-1.1M18 6l1.1-1.1"></path>
+          </svg>
+        </button>
+        <button class="nav-toggle" type="button" data-nav-toggle aria-expanded="false" aria-controls="site-nav" aria-label="Toggle navigation">
+          <span></span>
+        </button>
+      </div>
     </div>
   </header>
   <main id="main">
