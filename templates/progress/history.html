@@ -18,7 +18,7 @@
   {% else %}
   <table class="history">
     <thead>
-      <tr><th>Date</th><th>Type</th><th>Mode</th><th>Score</th><th>Action</th></tr>
+      <tr><th>Date</th><th>Type</th><th>Mode</th><th>Score</th><th>Estimated grade</th><th>Action</th></tr>
     </thead>
     <tbody>
       {% for row in attempts %}
@@ -27,6 +27,7 @@
           <td>{{ row.exam_type }}</td>
           <td>{{ row.mode }}</td>
           <td><strong>{% if row.needs_marking %}Marks pending{% elif row.total_score is not none %}{{ row.total_score }}{% else %}{{ row.status }}{% endif %}</strong></td>
+          <td>{% if row.needs_marking %}—{% elif row.grade %}{{ row.grade.label }}{% else %}—{% endif %}</td>
           <td>
             <div class="history-actions">
               <a class="btn btn-ghost btn-sm" href="{{ url_for('progress.attempt', attempt_id=row.id) }}">View</a>

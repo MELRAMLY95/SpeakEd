@@ -1,0 +1,12 @@
+{% if grade %}
+<section class="grade-banner" aria-label="Estimated practice grade">
+  <p class="score-label">Estimated grade</p>
+  <p class="grade-pair">
+    <span class="grade-nine">{{ grade.nine }}</span>
+    <span class="grade-sep" aria-hidden="true">·</span>
+    <span class="grade-letter">{{ grade.letter }}</span>
+  </p>
+  <p class="grade-scale">9–1 scale · A*–G letter scale</p>
+  <p class="grade-note">{{ grade.disclaimer }}</p>
+</section>
+{% endif %}

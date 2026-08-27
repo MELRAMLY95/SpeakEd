@@ -45,6 +45,15 @@
   color: var(--brand);
   font-variant-numeric: tabular-nums;
 }
+.stats-inline .stat-grade {
+  display: block;
+  margin-top: var(--s-2);
+  font-size: var(--text-sm);
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 0;
+  text-transform: none;
+}
 
 /* --- History table --------------------------------------------------------- */
 

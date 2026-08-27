@@ -31,6 +31,8 @@ def test_full_exam_results_show_total_and_feedback(client, app, monkeypatch):
             html = results.data.decode()
             assert "could not complete marking" not in html.lower()
             assert "/50" in html
+            assert "Estimated grade" in html
+            assert "Not an official Pearson Edexcel certificate grade" in html
             assert "What went well" in html
             assert "Recommended next step" in html
             with app.app_context():
@@ -297,6 +299,8 @@ def test_scores_are_saved_when_feedback_ai_fails(client, app, monkeypatch):
     assert b"could not complete marking" not in page.data.lower()
     assert b"No score was recorded" not in page.data
     assert b"/10" in page.data
+    assert b"Estimated grade" in page.data
+    assert b"Not an official Pearson Edexcel certificate grade" in page.data
     with app.app_context():
         from database.database import query_one
 

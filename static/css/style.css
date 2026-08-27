@@ -858,6 +858,53 @@ label.focused { color: var(--brand); }
   transition: opacity var(--dur) var(--ease);
 }
 
+.grade-banner {
+  margin: var(--s-6) 0;
+  padding: var(--s-5);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  background: var(--surface-inset);
+}
+.grade-banner .score-label {
+  margin: 0 0 var(--s-3);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.grade-pair {
+  display: flex;
+  align-items: baseline;
+  gap: var(--s-4);
+  margin: 0;
+  font-family: var(--font-sans);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  color: var(--ink);
+}
+.grade-nine {
+  font-size: var(--text-5xl);
+  font-variant-numeric: tabular-nums;
+}
+.grade-letter { font-size: var(--text-4xl); }
+.grade-sep { color: var(--muted); font-size: var(--text-3xl); font-weight: 600; }
+.grade-scale {
+  margin: var(--s-3) 0 0;
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.grade-note {
+  margin: var(--s-3) 0 0;
+  max-width: 62ch;
+  color: var(--ink-soft);
+  font-size: var(--text-sm);
+}
+
 /* ==========================================================================
    Responsive
    ========================================================================== */

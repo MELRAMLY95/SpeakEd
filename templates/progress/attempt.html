@@ -8,6 +8,9 @@
   <ul class="attempt-meta">
     <li>{{ attempt.started_at[:16].replace('T', ' ') }}</li>
     <li>Score <strong>{{ attempt.total_score if attempt.total_score is not none else (marking.total if marking and marking.total is not none else '—') }}</strong></li>
+    {% if grade %}
+      <li>Estimated grade <strong>{{ grade.label }}</strong></li>
+    {% endif %}
     {% if marking and marking.roleplay %}
       <li>Role play <strong>{{ marking.roleplay.score }}/10</strong></li>
     {% endif %}
@@ -17,7 +20,9 @@
     {% if marking and marking.picture %}
       <li>Picture <strong>{{ marking.picture.score }}/20</strong></li>
     {% endif %}
-  </ul>
+    </ul>
+
+  {% include "_grade_banner.html" %}
 
   {% if attempt.needs_marking %}
     <section class="attempt-panel attempt-panel-warn">

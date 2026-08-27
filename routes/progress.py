@@ -3,6 +3,7 @@ import json
 from flask import abort, g, render_template, url_for
 
 from ai.examiner import ExamEngine
+from ai.grades import estimate_grade
 from database.database import query_all, query_one
 from routes import progress_bp
 from routes.auth import login_required
@@ -19,6 +20,7 @@ def _with_marking_flag(row) -> dict:
     data = _as_dict(row)
     data["needs_marking"] = engine.needs_marking(row)
     data["type_label"] = (data.get("exam_type") or "").replace("_", " ")
+    data["grade"] = estimate_grade(data.get("total_score"), exam_type=data.get("exam_type"))
     return data
 
 
@@ -68,6 +70,10 @@ def attempt(attempt_id):
             "examiner_comments": feedback_row["examiner_comments"],
         }
     view = _with_marking_flag(row)
+    score = view.get("total_score")
+    if score is None and marking:
+        score = marking.get("total")
+    grade = estimate_grade(score, exam_type=view.get("exam_type"))
     return render_template(
         "progress/attempt.html",
         attempt=view,
@@ -75,5 +81,6 @@ def attempt(attempt_id):
         marking=marking,
         feedback=feedback,
         self_eval=self_eval,
+        grade=grade,
         retry_url=url_for("exam.retry_marking", attempt_id=attempt_id),
     )

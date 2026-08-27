@@ -60,6 +60,7 @@ def create_app(config_object=None):
     @app.context_processor
     def inject_globals():
         from ads import adsense_script_allowed, build_ad_slot, publisher_id
+        from ai.grades import estimate_grade
         from subscriptions import is_premium
 
         show_adsense_script = adsense_script_allowed()
@@ -70,6 +71,7 @@ def create_app(config_object=None):
             "is_premium": is_premium(g.get("user")),
             "show_adsense_script": show_adsense_script,
             "adsense_client_id": publisher_id() if show_adsense_script else "",
+            "estimated_grade": lambda score, exam_type="full": estimate_grade(score, exam_type=exam_type),
             "disclaimer": (
                 "AI-generated marks are estimates for practice purposes and are not official Pearson Edexcel marks or grades."
             ),

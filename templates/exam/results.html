@@ -16,6 +16,7 @@
 {% set pic = attempt.picture_score if attempt.picture_score is not none else (marking.picture.score if marking and marking.picture else none) %}
 {% set tot = attempt.total_score if attempt.total_score is not none else (marking.total if marking and marking.total is not none else none) %}
 {% set has_scores = rp is not none or tt is not none or pic is not none %}
+{% set grade = estimated_grade(tot, attempt.exam_type) %}
 <article class="wrap results">
   <p class="eyebrow">Practice result</p>
   <h1>4XES2 speaking practice result</h1>
@@ -33,6 +34,8 @@
       </form>
     </div>
   {% endif %}
+
+  {% include "_grade_banner.html" %}
 
   <div class="score-grid">
     {% if attempt.exam_type == 'full' or attempt.exam_type == 'roleplay' %}

@@ -2,6 +2,7 @@ import json
 
 from flask import g, render_template
 
+from ai.grades import estimate_grade
 from database.database import query_all, query_one
 from routes import dashboard_bp
 from routes.auth import login_required
@@ -32,8 +33,10 @@ def _stats(user_id: int) -> dict:
         "attempts": rows,
         "completed": len(rows),
         "latest": latest,
+        "latest_grade": estimate_grade(latest, exam_type="full"),
         "average": average,
         "highest": highest,
+        "highest_grade": estimate_grade(highest, exam_type="full"),
         "improvement": improvement,
         "strongest": max(areas, key=areas.get) if areas else None,
         "weakest": max(weakest_counts, key=weakest_counts.get) if weakest_counts else None,

@@ -60,7 +60,7 @@
   text-transform: uppercase;
   color: var(--muted);
 }
-.stats-grid article p:not(.stat):not(.stat-label) {
+.stats-grid article p:not(.stat):not(.stat-label):not(.stat-grade) {
   margin: 0;
   color: var(--ink);
   font-size: var(--text-base);
@@ -80,6 +80,13 @@
   font-variant-numeric: tabular-nums;
 }
 .stat small { font-size: var(--text-lg); color: var(--muted); }
+
+.stat-grade {
+  margin: var(--s-2) 0 0;
+  font-size: var(--text-lg);
+  font-weight: 800;
+  color: var(--brand);
+}
 
 .stat-label {
   margin: var(--s-3) 0 0;

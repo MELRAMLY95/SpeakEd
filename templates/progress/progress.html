@@ -21,9 +21,9 @@
     data-labels='{{ stats.chart_labels | tojson }}'
     data-scores='{{ stats.chart_scores | tojson }}'></canvas>
   <ul class="stats-inline">
-    <li><strong>{{ stats.latest or '—' }}</strong>Latest</li>
+    <li><strong>{{ stats.latest or '—' }}</strong>Latest{% if stats.latest_grade %}<span class="stat-grade">{{ stats.latest_grade.label }}</span>{% endif %}</li>
     <li><strong>{{ stats.average or '—' }}</strong>Average</li>
-    <li><strong>{{ stats.highest or '—' }}</strong>Highest</li>
+    <li><strong>{{ stats.highest or '—' }}</strong>Highest{% if stats.highest_grade %}<span class="stat-grade">{{ stats.highest_grade.label }}</span>{% endif %}</li>
   </ul>
   <p><a class="btn btn-primary" href="{{ url_for('progress.history') }}">View all attempts</a></p>
 </section>

@@ -22,9 +22,9 @@
   </div>
 </section>
 <section class="wrap stats-grid">
-  <article><h2>Latest</h2><p class="stat">{{ stats.latest if stats.latest is not none else '—' }}{% if stats.latest is not none %}<small>/50</small>{% endif %}</p><p class="stat-label">Most recent score</p></article>
+  <article><h2>Latest</h2><p class="stat">{{ stats.latest if stats.latest is not none else '—' }}{% if stats.latest is not none %}<small>/50</small>{% endif %}</p>{% if stats.latest_grade %}<p class="stat-grade">{{ stats.latest_grade.label }}</p>{% endif %}<p class="stat-label">Most recent score</p></article>
   <article><h2>Average</h2><p class="stat">{{ stats.average if stats.average is not none else '—' }}</p><p class="stat-label">Overall average</p></article>
-  <article><h2>Highest</h2><p class="stat">{{ stats.highest if stats.highest is not none else '—' }}</p><p class="stat-label">Best performance</p></article>
+  <article><h2>Highest</h2><p class="stat">{{ stats.highest if stats.highest is not none else '—' }}</p>{% if stats.highest_grade %}<p class="stat-grade">{{ stats.highest_grade.label }}</p>{% endif %}<p class="stat-label">Best performance</p></article>
   <article><h2>Completed</h2><p class="stat">{{ stats.completed }}</p><p class="stat-label">Total attempts</p></article>
   <article><h2>Strongest area</h2><p>{{ stats.strongest or 'Not enough data yet' }}</p><p class="stat-label">Best skill area</p></article>
   <article><h2>Weakest area</h2><p>{{ stats.weakest or 'Not enough data yet' }}</p><p class="stat-label">Needs improvement</p></article>
@@ -45,6 +45,10 @@
       <li>
         <a href="{{ url_for('progress.attempt', attempt_id=row.id) }}">
           {{ row.exam_type }} · {{ row.mode }} · {{ row.total_score if row.total_score is not none else 'in progress' }}
+          {% if row.total_score is not none %}
+            {% set recent_grade = estimated_grade(row.total_score, row.exam_type) %}
+            {% if recent_grade %} · {{ recent_grade.label }}{% endif %}
+          {% endif %}
           <span>{{ row.started_at[:16].replace('T', ' ') }}</span>
         </a>
       </li>
