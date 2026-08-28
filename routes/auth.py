@@ -42,10 +42,56 @@ def _valid_password(password: str) -> bool:
     return len(password) >= 8
 
 
+def _owner_email() -> str:
+    return (current_app.config.get("OWNER_EMAIL") or "").strip().lower()
+
+
+def _private_mode() -> bool:
+    return bool(current_app.config.get("PRIVATE_MODE"))
+
+
+def _is_owner_email(email: str) -> bool:
+    owner = _owner_email()
+    candidate = (email or "").strip().lower()
+    return bool(owner) and candidate == owner
+
+
+def ensure_owner_account(app=None) -> None:
+    """Create or refresh the single operator account used while the site is private."""
+    app = app or current_app
+    if not app.config.get("PRIVATE_MODE"):
+        return
+    email = (app.config.get("OWNER_EMAIL") or "").strip().lower()
+    password = app.config.get("OWNER_PASSWORD") or ""
+    name = (app.config.get("OWNER_NAME") or "Owner").strip() or "Owner"
+    if not email or not EMAIL_RE.match(email) or not _valid_password(password):
+        logger.warning("PRIVATE_MODE is on but OWNER_EMAIL/OWNER_PASSWORD are not set; nobody can sign in.")
+        return
+    existing = query_one("SELECT id FROM users WHERE email = ?", (email,))
+    stamp = _now().isoformat()
+    hashed = generate_password_hash(password)
+    if existing:
+        execute(
+            "UPDATE users SET password_hash = ?, name = ?, updated_at = ? WHERE id = ?",
+            (hashed, name, stamp, existing["id"]),
+        )
+        return
+    execute(
+        "INSERT INTO users (name, email, password_hash, created_at, updated_at) VALUES (?, ?, ?, ?, ?)",
+        (name, email, hashed, stamp, stamp),
+    )
+
+
 @auth_bp.route("/signup", methods=["GET", "POST"])
 def signup():
     if g.user:
         return redirect(url_for("dashboard.home"))
+    if _private_mode():
+        if request.method == "POST":
+            record_auth_failure("signup")
+            flash("New accounts are not being created yet.", "error")
+            return render_template("auth/signup.html", signup_closed=True), 403
+        return render_template("auth/signup.html", signup_closed=True)
     if request.method == "POST":
         if auth_is_rate_limited("signup"):
             flash("Too many account attempts. Please wait a few minutes and try again.", "error")
@@ -95,8 +141,11 @@ def login():
         email = (request.form.get("email") or "").strip().lower()
         password = request.form.get("password") or ""
         user = query_one("SELECT * FROM users WHERE email = ?", (email,))
+        allowed = user is not None and check_password_hash(user["password_hash"], password)
+        if _private_mode():
+            allowed = allowed and _is_owner_email(email)
         # Same public message either way so the form never reveals which emails exist.
-        if user is None or not check_password_hash(user["password_hash"], password):
+        if not allowed:
             record_auth_failure("login")
             logger.warning("Login failed for a sign-in attempt")
             flash("Incorrect email or password.", "error")
@@ -126,9 +175,11 @@ def forgot_password():
             flash("Too many reset attempts. Please wait a few minutes and try again.", "error")
             return render_template("auth/forgot_password.html"), 429
         email = (request.form.get("email") or "").strip().lower()
-        user = query_one("SELECT * FROM users WHERE email = ?", (email,))
         flash("If that email is registered, a reset link has been created.", "info")
         record_auth_failure("forgot")
+        if _private_mode() and not _is_owner_email(email):
+            return render_template("auth/forgot_password.html")
+        user = query_one("SELECT * FROM users WHERE email = ?", (email,))
         if user:
             token = secrets.token_urlsafe(32)
             token_hash = hashlib.sha256(token.encode()).hexdigest()

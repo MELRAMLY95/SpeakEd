@@ -109,6 +109,12 @@ class Config:
     PREMIUM_PRACTICE_EXAMS_PER_MONTH = _env_int("PREMIUM_PRACTICE_EXAMS_PER_MONTH", -1)
     PREMIUM_RETRY_MARKING_PER_MONTH = _env_int("PREMIUM_RETRY_MARKING_PER_MONTH", -1)
     PREMIUM_INFO_GEN_PER_MONTH = _env_int("PREMIUM_INFO_GEN_PER_MONTH", -1)
+    # Private preview: only OWNER_EMAIL can sign in, and public signup is closed.
+    # Set PRIVATE_MODE=false on Render when you launch publicly.
+    PRIVATE_MODE = _env_flag("PRIVATE_MODE", True)
+    OWNER_EMAIL = (os.environ.get("OWNER_EMAIL") or "").strip().lower()
+    OWNER_PASSWORD = os.environ.get("OWNER_PASSWORD") or ""
+    OWNER_NAME = (os.environ.get("OWNER_NAME") or "Owner").strip() or "Owner"
 
 
 class TestConfig(Config):
@@ -136,6 +142,9 @@ class TestConfig(Config):
     FREE_PRACTICE_EXAMS_PER_MONTH = 100
     FREE_RETRY_MARKING_PER_MONTH = 100
     FREE_INFO_GEN_PER_MONTH = 100
+    PRIVATE_MODE = False
+    OWNER_EMAIL = ""
+    OWNER_PASSWORD = ""
 
 
 def validate_runtime_config(config: dict) -> None:

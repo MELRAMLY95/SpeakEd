@@ -13,6 +13,8 @@
     <div class="hero-actions">
       {% if current_user %}
         <a class="btn btn-primary" href="{{ url_for('exam.intro') }}">Start full exam</a>
+      {% elif private_mode %}
+        <a class="btn btn-primary" href="{{ url_for('auth.login') }}">Sign in</a>
       {% else %}
         <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Start practising</a>
         <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Sign in</a>

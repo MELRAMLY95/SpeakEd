@@ -72,6 +72,7 @@ def create_app(config_object=None):
             "show_adsense_script": show_adsense_script,
             "adsense_client_id": publisher_id() if show_adsense_script else "",
             "estimated_grade": lambda score, exam_type="full": estimate_grade(score, exam_type=exam_type),
+            "private_mode": bool(app.config.get("PRIVATE_MODE")),
             "disclaimer": (
                 "AI-generated marks are estimates for practice purposes and are not official Pearson Edexcel marks or grades."
             ),
@@ -114,6 +115,9 @@ def create_app(config_object=None):
 
     with app.app_context():
         init_db()
+        from routes.auth import ensure_owner_account
+
+        ensure_owner_account(app)
 
     return app
 

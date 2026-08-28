@@ -24,7 +24,7 @@
     {% elif current_user %}
       <p>This is your current plan.</p>
     {% else %}
-      <a class="btn btn-ghost" href="{{ url_for('auth.signup') }}">Create a Free account</a>
+      <a class="btn btn-ghost" href="{{ url_for('auth.login' if private_mode else 'auth.signup') }}">{% if private_mode %}Sign in{% else %}Create a Free account{% endif %}</a>
     {% endif %}
   </article>
   <article class="billing-card billing-card-premium">
@@ -47,7 +47,7 @@
         <button class="btn btn-primary" type="submit">Upgrade to Premium</button>
       </form>
     {% else %}
-      <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Create an account to upgrade</a>
+      <a class="btn btn-primary" href="{{ url_for('auth.login' if private_mode else 'auth.signup') }}">{% if private_mode %}Sign in{% else %}Create an account to upgrade{% endif %}</a>
     {% endif %}
   </article>
 </section>

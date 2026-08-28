@@ -46,7 +46,9 @@
             <a href="{{ url_for('billing.pricing') }}">Pricing</a>
             <a href="{{ url_for('privacy') }}">Privacy</a>
             <a href="{{ url_for('auth.login') }}">Sign in</a>
+            {% if not private_mode %}
             <a class="btn btn-primary" href="{{ url_for('auth.signup') }}">Create account</a>
+            {% endif %}
           {% endif %}
         </nav>
         <button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false" aria-label="Switch to dark mode" title="Switch to dark mode">

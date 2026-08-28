@@ -11,6 +11,10 @@
     <p class="eyebrow">Get started</p>
     <h1>Create a student account</h1>
   </div>
+  {% if private_mode or signup_closed %}
+    <p>SpeakEd is in private preview. New accounts are closed until public launch.</p>
+    <p><a class="btn btn-primary" href="{{ url_for('auth.login') }}">Sign in</a></p>
+  {% else %}
   <form method="post" novalidate data-signup>
     {% include "_csrf.html" %}
     <label>Name <input type="text" name="name" required minlength="2" autocomplete="name"></label>
@@ -20,5 +24,6 @@
     <button class="btn btn-primary" type="submit">Sign up</button>
   </form>
   <p>Already registered? <a href="{{ url_for('auth.login') }}">Sign in</a></p>
+  {% endif %}
 </section>
 {% endblock %}
