@@ -71,6 +71,9 @@ class Config:
     INFO_GEN_MAX = 15
     INFO_GEN_WINDOW = 3600
     PERMANENT_SESSION_LIFETIME = 60 * 60 * 24 * 14
+    # Bump this (or set SESSION_VERSION) to invalidate every existing login cookie.
+    # New sign-ins still work; only sessions issued under an older value are dropped.
+    SESSION_VERSION = (os.environ.get("SESSION_VERSION") or "1").strip() or "1"
     MAX_CONTENT_LENGTH = 8 * 1024 * 1024
     WARMUP_SECONDS = 60
     ROLEPLAY_SECONDS = 120

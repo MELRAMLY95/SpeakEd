@@ -42,6 +42,13 @@ def _valid_password(password: str) -> bool:
     return len(password) >= 8
 
 
+def _login_user(user_id) -> None:
+    session.clear()
+    session["user_id"] = user_id
+    session["_session_version"] = str(current_app.config.get("SESSION_VERSION") or "1")
+    session.permanent = True
+
+
 def _owner_email() -> str:
     return (current_app.config.get("OWNER_EMAIL") or "").strip().lower()
 
@@ -122,9 +129,7 @@ def signup():
             (name, email, generate_password_hash(password), stamp, stamp),
         )
         user = query_one("SELECT id FROM users WHERE email = ?", (email,))
-        session.clear()
-        session["user_id"] = user["id"]
-        session.permanent = True
+        _login_user(user["id"])
         clear_auth_failures("signup")
         return redirect(url_for("dashboard.home"))
     return render_template("auth/signup.html")
@@ -150,9 +155,7 @@ def login():
             logger.warning("Login failed for a sign-in attempt")
             flash("Incorrect email or password.", "error")
             return render_template("auth/login.html")
-        session.clear()
-        session["user_id"] = user["id"]
-        session.permanent = True
+        _login_user(user["id"])
         clear_auth_failures("login")
         nxt = safe_next_path(request.args.get("next"), url_for("dashboard.home"))
         return redirect(nxt)

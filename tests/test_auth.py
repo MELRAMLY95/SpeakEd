@@ -16,6 +16,22 @@ def test_signup_and_login(client):
     assert b"Welcome" in ok.data
 
 
+def test_stale_login_is_dropped_when_session_version_changes(client):
+    signup(client)
+    with client.session_transaction() as sess:
+        sess["_session_version"] = "old"
+    redirected = client.get("/dashboard", follow_redirects=True)
+    assert b"Sign in" in redirected.data
+
+
+def test_login_issued_before_session_version_is_dropped(client):
+    signup(client)
+    with client.session_transaction() as sess:
+        sess.pop("_session_version", None)
+    redirected = client.get("/dashboard", follow_redirects=True)
+    assert b"Sign in" in redirected.data
+
+
 def test_dashboard_requires_login(client):
     response = client.get("/dashboard", follow_redirects=True)
     assert b"Sign in" in response.data

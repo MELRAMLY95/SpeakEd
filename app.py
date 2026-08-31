@@ -48,6 +48,11 @@ def create_app(config_object=None):
         g.user = None
         user_id = session.get("user_id")
         if user_id:
+            expected = str(app.config.get("SESSION_VERSION") or "1")
+            if str(session.get("_session_version") or "") != expected:
+                session.clear()
+                user_id = None
+        if user_id:
             g.user = query_one(
                 "SELECT id, name, email, created_at, is_premium FROM users WHERE id = ?",
                 (user_id,),
