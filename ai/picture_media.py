@@ -32,24 +32,89 @@ class PictureLoadError(Exception):
 
 _TOPIC_SVG = {
     "homes": "/static/images/pictures/homes.svg",
+    "myself": "/static/images/pictures/homes.svg",
+    "friends_family": "/static/images/pictures/homes.svg",
+    "food": "/static/images/pictures/homes.svg",
     "tourism": "/static/images/pictures/tourism.svg",
+    "hobbies": "/static/images/pictures/tourism.svg",
+    "sport": "/static/images/pictures/tourism.svg",
+    "environment": "/static/images/pictures/tourism.svg",
     "school": "/static/images/pictures/school.svg",
+    "education": "/static/images/pictures/school.svg",
+    "media": "/static/images/pictures/school.svg",
+    "technology": "/static/images/pictures/school.svg",
+    "health": "/static/images/pictures/school.svg",
     "work": "/static/images/pictures/work.svg",
+    "equality": "/static/images/pictures/work.svg",
 }
 
 _TITLE_TOPICS = (
+    ("friends", "friends_family"),
+    ("family", "friends_family"),
+    ("myself", "myself"),
+    ("identity", "myself"),
+    ("hobby", "hobbies"),
+    ("leisure", "hobbies"),
+    ("equal", "equality"),
+    ("environment", "environment"),
+    ("climate", "environment"),
+    ("media", "media"),
+    ("news", "media"),
+    ("technolog", "technology"),
+    ("sport", "sport"),
+    ("health", "health"),
+    ("food", "food"),
+    ("meal", "food"),
     ("home", "homes"),
     ("living", "homes"),
     ("tourism", "tourism"),
     ("travel", "tourism"),
     ("holiday", "tourism"),
-    ("school", "school"),
-    ("educat", "school"),
-    ("learn", "school"),
+    ("school", "education"),
+    ("educat", "education"),
+    ("learn", "education"),
     ("work", "work"),
     ("career", "work"),
     ("employ", "work"),
 )
+
+_ALLOWED_PICTURE_HOSTS = (
+    "media.gettyimages.com",
+    "embed.gettyimages.com",
+    "download.gettyimages.com",
+    "media-gettyimages-com.akamaized.net",
+)
+
+
+def topic_key_from_card(card: dict | None) -> str:
+    card = card or {}
+    key = str(card.get("topic_key") or "").strip()
+    if key in _TOPIC_SVG:
+        return key
+    return topic_key_from_title(card.get("title") or card.get("topic_area") or "")
+
+
+def topic_key_from_title(title: str) -> str:
+    title_l = (title or "").lower()
+    for needle, topic in _TITLE_TOPICS:
+        if needle in title_l:
+            return topic
+    return "homes"
+
+
+def local_svg_for_topic(topic: str) -> str:
+    svg = _TOPIC_SVG.get(topic) or _TOPIC_SVG["homes"]
+    disk = BASE_DIR / svg.lstrip("/")
+    return svg if disk.is_file() else _TOPIC_SVG["homes"]
+
+
+def picture_host_allowed(host: str) -> bool:
+    name = (host or "").strip().strip("[]").lower()
+    if not name:
+        return False
+    if name in _ALLOWED_PICTURE_HOSTS:
+        return True
+    return name.endswith(".gettyimages.com")
 
 
 def _static_url(path: Path) -> str:
@@ -57,39 +122,27 @@ def _static_url(path: Path) -> str:
 
 
 def browser_picture_src(ref: str | None, *, title: str = "") -> str:
-    """Return a same-origin image URL that exists on disk.
+    """Return the URL the browser should load for a picture card.
 
-    Prompt cards historically pointed at .jpg files that were never shipped;
-    the repo only has SVG scene cards. External Picsum URLs are also mapped
-    back to those local files so the exam photo still shows if the CDN fails.
+    Remote Getty Images URLs are kept as-is. Missing local .jpg files still
+    fall back to the SVG scene cards shipped in the repo (used by tests).
     """
     value = (ref or "").strip()
-    lowered = value.lower()
-    for topic, svg in _TOPIC_SVG.items():
-        if topic in lowered:
-            disk = BASE_DIR / svg.lstrip("/")
-            if disk.is_file():
-                return svg
-    title_l = (title or "").lower()
-    for needle, topic in _TITLE_TOPICS:
-        if needle in title_l:
-            svg = _TOPIC_SVG[topic]
-            disk = BASE_DIR / svg.lstrip("/")
-            if disk.is_file():
-                return svg
-    if not value or value.startswith(("http://", "https://")):
+    if value.startswith(("http://", "https://")):
         return value
-    try:
-        path = _local_path(value)
-    except PictureLoadError:
+    if value:
+        try:
+            path = _local_path(value)
+        except PictureLoadError:
+            return value
+        if path.is_file():
+            return _static_url(path)
+        if path.suffix.lower() in {".jpg", ".jpeg", ".png"}:
+            svg = path.with_suffix(".svg")
+            if svg.is_file():
+                return _static_url(svg)
         return value
-    if path.is_file():
-        return _static_url(path)
-    if path.suffix.lower() in {".jpg", ".jpeg", ".png"}:
-        svg = path.with_suffix(".svg")
-        if svg.is_file():
-            return _static_url(svg)
-    return value
+    return local_svg_for_topic(topic_key_from_title(title))
 
 
 def load_picture_media(ref: str | None) -> tuple[bytes, str]:
@@ -148,7 +201,8 @@ def _fetch_url(url: str) -> tuple[bytes, str]:
     parsed = urlparse(url)
     if parsed.scheme != "https" or parsed.username or parsed.password:
         raise PictureLoadError("Picture URLs must be HTTPS.")
-    if host_is_blocked(parsed.hostname or ""):
+    host = parsed.hostname or ""
+    if host_is_blocked(host) or not picture_host_allowed(host):
         raise PictureLoadError("That picture URL is not allowed.")
     request = urllib.request.Request(url, method="GET", headers={"User-Agent": "SpeakEd-examiner"})
     try:

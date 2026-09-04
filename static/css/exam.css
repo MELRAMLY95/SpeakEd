@@ -187,6 +187,12 @@
   object-fit: cover;
   aspect-ratio: 16 / 9;
 }
+.picture-credit,
+.stimulus figcaption {
+  margin: var(--s-2) 0 0;
+  color: var(--muted);
+  font-size: var(--text-xs, 0.75rem);
+}
 
 .mic-state {
   margin: var(--s-4) 0 0;

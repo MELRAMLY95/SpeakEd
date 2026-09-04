@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from ai.prompts import PromptBank
 from ai.picture_media import browser_picture_src
+from services.image_fetcher import attach_picture_media
 from ai.speech import cleanup_attempt_audio, save_turn_audio, summarise_metrics
 from ai.voice import examiner_voice_payload
 from ai.ai_provider import get_ai
@@ -86,9 +87,7 @@ class ExamEngine:
             else:
                 avoid = payload.get("roleplay", {}).get("topic_area")
                 payload["picture"] = self.bank.choose_picture(user_id, avoid_topic=avoid)
-            picture = dict(payload["picture"])
-            picture["image"] = browser_picture_src(picture.get("image"), title=picture.get("title") or "")
-            payload["picture"] = picture
+            payload["picture"] = attach_picture_media(payload["picture"])
         if exam_type in {"full", "topic_talk"}:
             title = topic_title.strip() or "your chosen Global Issues topic"
             payload["topic_followups"] = self.bank.choose_topic_followups(user_id, title)
@@ -120,7 +119,8 @@ class ExamEngine:
         picture = payload.get("picture")
         if isinstance(picture, dict):
             picture = dict(picture)
-            picture["image"] = browser_picture_src(picture.get("image"), title=picture.get("title") or "")
+            if not str(picture.get("image") or "").startswith(("http://", "https://")):
+                picture = attach_picture_media(picture)
         return {
             "attempt_id": attempt["id"],
             "exam_type": attempt["exam_type"],

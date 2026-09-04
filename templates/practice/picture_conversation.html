@@ -10,17 +10,18 @@
   <div class="hero-content">
     <p class="eyebrow">Picture-based conversation</p>
     <h1>Task 3 Picture conversation</h1>
-    <p class="lead">Choose a picture topic to practice. Describe the scene, then answer the unseen follow-up questions.</p>
+    <p class="lead">Choose a 4XES2 topic photograph. Describe the scene, then answer the unseen follow-up questions.</p>
   </div>
 </section>
 <section class="wrap">
   <div class="picture-cards-grid">
     {% for card in cards %}
     <div class="picture-card">
-      <img src="{{ card.image }}" alt="{{ card.title }}" class="picture-preview">
+        <img src="{{ card.image }}" alt="{{ card.title }}" class="picture-preview" referrerpolicy="no-referrer">
       <div class="picture-info">
         <h3>{{ card.title }}</h3>
         <p>{{ card.topic_area }}</p>
+        {% if card.credit %}<p class="picture-credit">{{ card.credit }}</p>{% endif %}
         <form method="post" action="{{ url_for('practice.start') }}">
           {% include "_csrf.html" %}
           <input type="hidden" name="section" value="picture">

@@ -19,10 +19,11 @@ def test_browser_src_maps_missing_jpg_to_svg():
     assert browser_picture_src("/static/images/pictures/tourism.jpg") == "/static/images/pictures/tourism.svg"
 
 
-def test_browser_src_maps_picsum_url_using_title():
-    url = "https://picsum.photos/1920/1080?random=living-room-548"
-    assert browser_picture_src(url, title="Homes and Living Spaces") == "/static/images/pictures/homes.svg"
-    assert browser_picture_src(url, title="Education and Learning") == "/static/images/pictures/school.svg"
+def test_browser_src_keeps_remote_photo_urls():
+    url = "https://media.gettyimages.com/id/1435656847/photo/family.jpg?s=170x170"
+    assert browser_picture_src(url, title="Homes and Living Spaces") == url
+    picsum = "https://picsum.photos/1920/1080?random=living-room-548"
+    assert browser_picture_src(picsum, title="Education and Learning") == picsum
 
 
 def test_missing_jpg_falls_back_to_svg_for_marking():

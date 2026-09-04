@@ -118,6 +118,9 @@ class Config:
     OWNER_EMAIL = (os.environ.get("OWNER_EMAIL") or "").strip().lower()
     OWNER_PASSWORD = os.environ.get("OWNER_PASSWORD") or ""
     OWNER_NAME = (os.environ.get("OWNER_NAME") or "Owner").strip() or "Owner"
+    # Task 3 photographs come from Getty Images' public oEmbed URLs.
+    # Tests set PICTURE_SOURCE=local to keep SVG scene cards.
+    PICTURE_SOURCE = (os.environ.get("PICTURE_SOURCE") or "getty").strip().lower() or "getty"
 
 
 class TestConfig(Config):
@@ -148,6 +151,7 @@ class TestConfig(Config):
     PRIVATE_MODE = False
     OWNER_EMAIL = ""
     OWNER_PASSWORD = ""
+    PICTURE_SOURCE = "local"
 
 
 def validate_runtime_config(config: dict) -> None:

@@ -46,7 +46,8 @@
       </article>
       <article>
         <h2>Picture card · {{ state.cards.picture.title }}</h2>
-        <img src="{{ state.cards.picture.image }}" alt="Picture stimulus">
+        <img src="{{ state.cards.picture.image }}" alt="Picture stimulus" referrerpolicy="no-referrer">
+        {% if state.cards.picture.credit %}<p class="picture-credit">{{ state.cards.picture.credit }}</p>{% endif %}
         <p>Prepare to describe the picture. Follow-up questions are unseen.</p>
       </article>
     </div>

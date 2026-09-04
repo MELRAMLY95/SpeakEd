@@ -1,14 +1,13 @@
 from flask import current_app, flash, g, jsonify, redirect, render_template, request, url_for
 
 from ai.examiner import ExamEngine
-from ai.picture_media import browser_picture_src
 from ai.prompts import PromptBank
 from routes import practice_bp
 from routes.auth import login_required
 from plans import PRACTICE_EXAM
 from security import consume_rate
 from subscriptions import consume_usage
-from services.image_fetcher import get_image_fetcher
+from services.image_fetcher import attach_picture_media, get_image_fetcher
 
 engine = ExamEngine()
 image_fetcher = get_image_fetcher()
@@ -36,14 +35,12 @@ def topic_talk():
 @practice_bp.route("/practice/picture")
 @login_required
 def picture():
-    """Picture conversation practice with the local scene cards."""
+    """Picture conversation practice with 4XES2 topic photographs."""
     cards = []
     for card in prompt_bank.picture.get("cards") or []:
         if not isinstance(card, dict):
             continue
-        shown = dict(card)
-        shown["image"] = browser_picture_src(shown.get("image"), title=shown.get("title") or "")
-        cards.append(shown)
+        cards.append(attach_picture_media(card))
     return render_template("practice/picture_conversation.html", cards=cards)
 
 

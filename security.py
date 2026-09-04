@@ -167,7 +167,15 @@ def public_error_message(fallback: str = "Something went wrong. Please try again
 def apply_security_headers(response):
     ads_script = bool(getattr(g, "allow_ad_script", False))
     script_src = ["'self'"]
-    img_src = ["'self'", "data:", "blob:", "https://picsum.photos", "https://i.picsum.photos"]
+    img_src = [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://media.gettyimages.com",
+        "https://embed.gettyimages.com",
+        "https://*.gettyimages.com",
+        "https://media-gettyimages-com.akamaized.net",
+    ]
     connect_src = ["'self'"]
     frame_src = []
     if ads_script:

@@ -14,8 +14,9 @@
     <p class="status-pill" data-status>Ready</p>
     <blockquote data-question>{{ (state.prompt.display if state.prompt else 'Preparing the next prompt.') }}</blockquote>
     {% if state.cards.picture and state.stage in ['preparation', 'picture'] %}
-      <figure class="stimulus">
-        <img src="{{ state.cards.picture.image }}" alt="Picture stimulus for {{ state.cards.picture.title }}">
+        <figure class="stimulus">
+        <img src="{{ state.cards.picture.image }}" alt="Picture stimulus for {{ state.cards.picture.title }}" referrerpolicy="no-referrer">
+        {% if state.cards.picture.credit %}<figcaption class="picture-credit">{{ state.cards.picture.credit }}</figcaption>{% endif %}
       </figure>
     {% endif %}
     <p class="mic-state" data-mic-state>Microphone idle</p>

@@ -5,6 +5,8 @@
       "id": "pt01",
       "title": "Homes and Living Spaces",
       "topic_area": "Myself and others",
+      "topic_key": "homes",
+      "getty_id": "1435656847",
       "difficulty": "medium",
       "meaning_key": "homes and living spaces",
       "image": "/static/images/pictures/homes.svg",
@@ -23,6 +25,8 @@
       "id": "pt02",
       "title": "Travel and Tourism",
       "topic_area": "Travel and tourism",
+      "topic_key": "tourism",
+      "getty_id": "2138928345",
       "difficulty": "medium",
       "meaning_key": "tourist activities holiday",
       "image": "/static/images/pictures/tourism.svg",
@@ -41,6 +45,8 @@
       "id": "pt03",
       "title": "Education and Learning",
       "topic_area": "Education",
+      "topic_key": "education",
+      "getty_id": "2169899800",
       "difficulty": "medium",
       "meaning_key": "school life classroom learning",
       "image": "/static/images/pictures/school.svg",
@@ -59,6 +65,8 @@
       "id": "pt04",
       "title": "Working Life and Careers",
       "topic_area": "Employment",
+      "topic_key": "work",
+      "getty_id": "2193568098",
       "difficulty": "medium",
       "meaning_key": "people at work jobs careers",
       "image": "/static/images/pictures/work.svg",
@@ -71,6 +79,206 @@
         {"id": "pt04e", "spoken": "Do you think young people should gain work experience before attending university, and why might this be beneficial or problematic?", "type": "opinion"},
         {"id": "pt04f", "spoken": "How do you think the job market and types of careers available might change in the next twenty years?", "type": "speculate"},
         {"id": "pt04g", "spoken": "Do you have a question for me about working life or careers?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt05",
+      "title": "Myself and Identity",
+      "topic_area": "Myself and others",
+      "topic_key": "myself",
+      "getty_id": "2189077006",
+      "difficulty": "medium",
+      "meaning_key": "personal identity daily life",
+      "image": "/static/images/pictures/homes.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of yourself and identity.",
+      "examiner_prompts": [
+        {"id": "pt05a", "spoken": "Describe the photo in as much detail as possible, including the people and what they appear to be doing.", "type": "describe"},
+        {"id": "pt05b", "spoken": "Tell me about a typical day in your life. What routines are important to you, and why?", "type": "experience"},
+        {"id": "pt05c", "spoken": "How would you describe your personality to someone who has just met you, and which qualities would you like to develop?", "type": "opinion"},
+        {"id": "pt05d", "spoken": "Some people say teenagers should be independent as early as possible. To what extent do you agree?", "type": "opinion"},
+        {"id": "pt05e", "spoken": "How do you think young people's lifestyles might change over the next ten years?", "type": "speculate"},
+        {"id": "pt05f", "spoken": "What advice would you give to a student moving to a new school who wants to make a good first impression?", "type": "advice"},
+        {"id": "pt05g", "spoken": "Do you have a question for me about daily life or identity?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt06",
+      "title": "Friends and Family",
+      "topic_area": "Myself and others",
+      "topic_key": "friends_family",
+      "getty_id": "1400784606",
+      "difficulty": "medium",
+      "meaning_key": "friends family relationships",
+      "image": "/static/images/pictures/homes.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of friends and family.",
+      "examiner_prompts": [
+        {"id": "pt06a", "spoken": "Describe the photo, focusing on the people, their relationships, and the mood of the scene.", "type": "describe"},
+        {"id": "pt06b", "spoken": "Tell me about a family celebration or a time you spent with friends that you remember well. What made it special?", "type": "experience"},
+        {"id": "pt06c", "spoken": "How do friendships change as people get older, and what do you value most in a close friend?", "type": "opinion"},
+        {"id": "pt06d", "spoken": "Some people believe family is more important than friends. What is your view?", "type": "opinion"},
+        {"id": "pt06e", "spoken": "Compare spending free time with family and spending it with friends. What are the advantages of each?", "type": "compare"},
+        {"id": "pt06f", "spoken": "How might family life change in the future as more people live and work in different countries?", "type": "speculate"},
+        {"id": "pt06g", "spoken": "Do you have a question for me about friends or family?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt07",
+      "title": "Hobbies and Leisure",
+      "topic_area": "Free time",
+      "topic_key": "hobbies",
+      "getty_id": "1561143023",
+      "difficulty": "medium",
+      "meaning_key": "hobbies leisure free time",
+      "image": "/static/images/pictures/tourism.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of hobbies and leisure.",
+      "examiner_prompts": [
+        {"id": "pt07a", "spoken": "Describe the photo, including the activity, the setting, and how the people seem to feel.", "type": "describe"},
+        {"id": "pt07b", "spoken": "What do you like doing in your free time, and how did you first become interested in that hobby?", "type": "experience"},
+        {"id": "pt07c", "spoken": "If you could take up a new hobby next year, what would you choose and why?", "type": "future"},
+        {"id": "pt07d", "spoken": "Some people think young people spend too much free time on screens. Do you agree or disagree?", "type": "opinion"},
+        {"id": "pt07e", "spoken": "Compare indoor hobbies with outdoor activities. What are the benefits of each?", "type": "compare"},
+        {"id": "pt07f", "spoken": "How might leisure activities change as technology develops?", "type": "speculate"},
+        {"id": "pt07g", "spoken": "Do you have a question for me about hobbies or free time?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt08",
+      "title": "Equality",
+      "topic_area": "Global issues",
+      "topic_key": "equality",
+      "getty_id": "1864423396",
+      "difficulty": "difficult",
+      "meaning_key": "equality fairness inclusion",
+      "image": "/static/images/pictures/work.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of equality.",
+      "examiner_prompts": [
+        {"id": "pt08a", "spoken": "Describe the photo and explain what idea or situation it might represent.", "type": "describe"},
+        {"id": "pt08b", "spoken": "Tell me about a time when you saw someone being treated fairly or unfairly. What happened, and how did it affect you?", "type": "experience"},
+        {"id": "pt08c", "spoken": "What does equality mean to you in school, at work, or in society?", "type": "opinion"},
+        {"id": "pt08d", "spoken": "Some people argue that everyone already has equal opportunities. To what extent do you agree?", "type": "opinion"},
+        {"id": "pt08e", "spoken": "What practical steps could schools and governments take to make society fairer?", "type": "advice"},
+        {"id": "pt08f", "spoken": "How do you think attitudes to equality might change in the next twenty years?", "type": "speculate"},
+        {"id": "pt08g", "spoken": "Do you have a question for me about equality or fairness?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt09",
+      "title": "The Environment",
+      "topic_area": "Global issues",
+      "topic_key": "environment",
+      "getty_id": "2150674855",
+      "difficulty": "medium",
+      "meaning_key": "environment climate nature",
+      "image": "/static/images/pictures/tourism.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of the environment.",
+      "examiner_prompts": [
+        {"id": "pt09a", "spoken": "Describe the photo, focusing on the setting, the people, and any environmental details you notice.", "type": "describe"},
+        {"id": "pt09b", "spoken": "What do you personally do to help the environment, and how easy or difficult is that in your daily life?", "type": "experience"},
+        {"id": "pt09c", "spoken": "Which environmental problem do you think is the most urgent, and why?", "type": "opinion"},
+        {"id": "pt09d", "spoken": "Some people say individuals cannot make a difference compared with large companies. What is your view?", "type": "opinion"},
+        {"id": "pt09e", "spoken": "Compare the environmental impact of travelling by car with travelling by public transport or bicycle.", "type": "compare"},
+        {"id": "pt09f", "spoken": "How might towns and cities look different in twenty years if they become more environmentally friendly?", "type": "speculate"},
+        {"id": "pt09g", "spoken": "Do you have a question for me about the environment?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt10",
+      "title": "The Media",
+      "topic_area": "Global issues",
+      "topic_key": "media",
+      "getty_id": "948544134",
+      "difficulty": "medium",
+      "meaning_key": "media news social media",
+      "image": "/static/images/pictures/school.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of the media.",
+      "examiner_prompts": [
+        {"id": "pt10a", "spoken": "Describe the photo, including any devices, people, and what they appear to be using the media for.", "type": "describe"},
+        {"id": "pt10b", "spoken": "How do you usually get news or entertainment, and which sources do you trust the most?", "type": "experience"},
+        {"id": "pt10c", "spoken": "What are the advantages and disadvantages of social media for young people?", "type": "compare"},
+        {"id": "pt10d", "spoken": "Some people believe traditional newspapers and television are no longer necessary. Do you agree?", "type": "opinion"},
+        {"id": "pt10e", "spoken": "How can students check whether a news story is reliable?", "type": "advice"},
+        {"id": "pt10f", "spoken": "How do you think the media might change in the next ten years?", "type": "speculate"},
+        {"id": "pt10g", "spoken": "Do you have a question for me about the media?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt11",
+      "title": "Technology",
+      "topic_area": "Global issues",
+      "topic_key": "technology",
+      "getty_id": "2178258003",
+      "difficulty": "medium",
+      "meaning_key": "technology digital devices",
+      "image": "/static/images/pictures/school.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of technology.",
+      "examiner_prompts": [
+        {"id": "pt11a", "spoken": "Describe the photo, focusing on the technology you can see and how people are using it.", "type": "describe"},
+        {"id": "pt11b", "spoken": "Tell me about a piece of technology you use every day. How does it help you, and are there any problems with it?", "type": "experience"},
+        {"id": "pt11c", "spoken": "Do you think schools should allow students to use smartphones in class? Why or why not?", "type": "opinion"},
+        {"id": "pt11d", "spoken": "Compare communicating face to face with communicating through technology.", "type": "compare"},
+        {"id": "pt11e", "spoken": "How might artificial intelligence change education and work in the future?", "type": "speculate"},
+        {"id": "pt11f", "spoken": "What advice would you give to someone who spends too much time online?", "type": "advice"},
+        {"id": "pt11g", "spoken": "Do you have a question for me about technology?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt12",
+      "title": "Sport",
+      "topic_area": "Free time",
+      "topic_key": "sport",
+      "getty_id": "1455481853",
+      "difficulty": "easy",
+      "meaning_key": "sport exercise teams",
+      "image": "/static/images/pictures/tourism.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of sport.",
+      "examiner_prompts": [
+        {"id": "pt12a", "spoken": "Describe the photo, including the sport or activity, the place, and the people taking part.", "type": "describe"},
+        {"id": "pt12b", "spoken": "Do you play any sports or do any exercise? Tell me about a match, class, or training session you remember.", "type": "experience"},
+        {"id": "pt12c", "spoken": "Should sport be a compulsory subject at school? Give reasons for your opinion.", "type": "opinion"},
+        {"id": "pt12d", "spoken": "Compare team sports with individual sports. Which do you prefer, and why?", "type": "compare"},
+        {"id": "pt12e", "spoken": "How might sport and fitness change as more people use apps and wearable technology?", "type": "speculate"},
+        {"id": "pt12f", "spoken": "What advice would you give to a friend who wants to become fitter but does not enjoy sport?", "type": "advice"},
+        {"id": "pt12g", "spoken": "Do you have a question for me about sport or exercise?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt13",
+      "title": "Health",
+      "topic_area": "Daily life",
+      "topic_key": "health",
+      "getty_id": "888273280",
+      "difficulty": "medium",
+      "meaning_key": "health lifestyle wellbeing",
+      "image": "/static/images/pictures/school.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of health.",
+      "examiner_prompts": [
+        {"id": "pt13a", "spoken": "Describe the photo and explain what it suggests about health or lifestyle.", "type": "describe"},
+        {"id": "pt13b", "spoken": "What do you do to stay healthy, and how easy is it to keep those habits during a busy school week?", "type": "experience"},
+        {"id": "pt13c", "spoken": "Some people say mental health is just as important as physical health. What is your view?", "type": "opinion"},
+        {"id": "pt13d", "spoken": "Who should be more responsible for public health: individuals, schools, or the government?", "type": "opinion"},
+        {"id": "pt13e", "spoken": "How might young people's health change if they spent less time sitting and more time outdoors?", "type": "speculate"},
+        {"id": "pt13f", "spoken": "What advice would you give to a student who wants a healthier lifestyle but has little free time?", "type": "advice"},
+        {"id": "pt13g", "spoken": "Do you have a question for me about health?", "type": "ask"}
+      ]
+    },
+    {
+      "id": "pt14",
+      "title": "Food and Culture",
+      "topic_area": "Daily life",
+      "topic_key": "food",
+      "getty_id": "1813251478",
+      "difficulty": "easy",
+      "meaning_key": "food meals culture",
+      "image": "/static/images/pictures/homes.svg",
+      "examiner_intro": "We are now going to complete the final task, Task 3. Look at the picture. We are going to discuss the picture and the topic of food and culture.",
+      "examiner_prompts": [
+        {"id": "pt14a", "spoken": "Describe the photo, including the food, the setting, and the people if there are any.", "type": "describe"},
+        {"id": "pt14b", "spoken": "Tell me about a meal that is important in your family or culture. When do you eat it, and why is it special?", "type": "experience"},
+        {"id": "pt14c", "spoken": "Do you prefer eating at home or in a restaurant? Explain your reasons.", "type": "opinion"},
+        {"id": "pt14d", "spoken": "Some people believe fast food is harming young people's health. To what extent do you agree?", "type": "opinion"},
+        {"id": "pt14e", "spoken": "Compare traditional home cooking with buying ready-made food. What are the advantages of each?", "type": "compare"},
+        {"id": "pt14f", "spoken": "How might eating habits change in the future because of climate concerns or new technology?", "type": "speculate"},
+        {"id": "pt14g", "spoken": "Do you have a question for me about food or eating habits?", "type": "ask"}
       ]
     }
   ]

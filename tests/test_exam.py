@@ -122,6 +122,10 @@ def test_practice_picture_picker_shows_local_images(client):
     assert "picsum.photos" not in html
     assert "/static/images/pictures/homes.svg" in html
     assert "/static/images/pictures/tourism.svg" in html
+    assert "Friends and Family" in html
+    assert "The Environment" in html
+    assert "The Media" in html
+    assert "Equality" in html
     svg = client.get("/static/images/pictures/homes.svg")
     assert svg.status_code == 200
     assert b"<svg" in svg.data
