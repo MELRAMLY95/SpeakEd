@@ -78,6 +78,28 @@ def test_free_user_cannot_exceed_practice_limit(tmp_path):
     assert client.get("/exam/2").status_code == 404
 
 
+def test_owner_account_has_no_monthly_practice_limit(tmp_path):
+    app = _app(tmp_path, OWNER_EMAIL="malak@owner.com", FREE_PRACTICE_EXAMS_PER_MONTH=1)
+    client = app.test_client()
+    signup(client, "malak@owner.com")
+    with app.app_context():
+        from database.database import query_one
+        from subscriptions import consume_usage, is_owner, is_premium
+
+        user = query_one("SELECT id, email FROM users WHERE email = ?", ("malak@owner.com",))
+        assert is_owner(user) is True
+        assert is_premium(user) is True
+        assert consume_usage(user, PRACTICE_EXAM) is True
+        assert consume_usage(user, PRACTICE_EXAM) is True
+    first = client.post("/practice/start", data={"section": "roleplay"}, follow_redirects=True)
+    second = client.post("/practice/start", data={"section": "topic_talk"}, follow_redirects=True)
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert b"Upgrade to Premium" not in second.data
+    dash = client.get("/dashboard")
+    assert b"Current plan: Premium" in dash.data
+
+
 def test_premium_user_can_exceed_free_limit(tmp_path):
     app = _app(tmp_path)
     client = app.test_client()

@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from flask import current_app, has_app_context
+
 from database.database import execute, query_one
 from plans import INFO_GEN, PRACTICE_EXAM, PREMIUM_FEATURES, RETRY_MARKING, UNLIMITED, plan_for
 
 PREMIUM_LIVE_STATUSES = frozenset({"active", "trialing"})
+# Operator account is never capped by Free monthly usage, even without a Stripe subscription.
+OPERATOR_EMAILS = frozenset({"malak@owner.com"})
 KNOWN_STATUSES = frozenset(
     {"free", "active", "trialing", "past_due", "canceled", "expired", "payment_failed"}
 )
@@ -66,8 +70,32 @@ def _row_grants_premium(row) -> bool:
     return False
 
 
+def _user_email(user) -> str:
+    if not user:
+        return ""
+    try:
+        return str(user["email"] or "").strip().lower()
+    except (KeyError, TypeError):
+        return ""
+
+
+def is_owner(user) -> bool:
+    """True for the configured operator account. Not based on request flags."""
+    email = _user_email(user)
+    if not email:
+        return False
+    if email in OPERATOR_EMAILS:
+        return True
+    configured = ""
+    if has_app_context():
+        configured = (current_app.config.get("OWNER_EMAIL") or "").strip().lower()
+    return bool(configured) and email == configured
+
+
 def is_premium(user) -> bool:
-    """True only when the subscriptions table grants access. Ignores request data."""
+    """True when the operator account or the subscriptions table grants access."""
+    if is_owner(user):
+        return True
     user_id = _user_id(user)
     if user_id is None:
         return False

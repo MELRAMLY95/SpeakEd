@@ -115,7 +115,7 @@ class Config:
     # Private preview: only OWNER_EMAIL can sign in, and public signup is closed.
     # Set PRIVATE_MODE=false on Render when you launch publicly.
     PRIVATE_MODE = _env_flag("PRIVATE_MODE", True)
-    OWNER_EMAIL = (os.environ.get("OWNER_EMAIL") or "").strip().lower()
+    OWNER_EMAIL = (os.environ.get("OWNER_EMAIL") or "malak@owner.com").strip().lower()
     OWNER_PASSWORD = os.environ.get("OWNER_PASSWORD") or ""
     OWNER_NAME = (os.environ.get("OWNER_NAME") or "Owner").strip() or "Owner"
     # Task 3 photographs come from Getty Images' public oEmbed URLs.
