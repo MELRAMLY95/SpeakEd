@@ -1,0 +1,11 @@
+{
+  "name": "SpeakEd",
+  "install": "bash .cursor/install.sh",
+  "terminals": [
+    {
+      "name": "web",
+      "command": "./.venv/bin/python -m gunicorn app:app --bind 0.0.0.0:8000 --timeout 180 --workers 2"
+    }
+  ],
+  "ports": [8000]
+}
