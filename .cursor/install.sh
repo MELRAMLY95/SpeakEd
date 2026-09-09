@@ -8,6 +8,16 @@ cd "$(dirname "$0")/.."
 
 PY="${PYTHON:-python3}"
 
+# The default base image ships python3 but not always the venv/ensurepip module.
+# Ensure it is present before creating the virtualenv (no-op when already installed).
+if ! "$PY" -m venv --help >/dev/null 2>&1 || ! "$PY" -c "import ensurepip" >/dev/null 2>&1; then
+  PYVER="$("$PY" -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
+  SUDO=""
+  if [ "$(id -u)" -ne 0 ]; then SUDO="sudo"; fi
+  $SUDO apt-get update -qq
+  $SUDO apt-get install -y -qq "python${PYVER}-venv" python3-pip
+fi
+
 if [ ! -x ".venv/bin/python" ]; then
   "$PY" -m venv .venv
 fi
