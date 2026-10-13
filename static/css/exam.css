@@ -261,6 +261,13 @@
   margin-top: var(--s-6);
 }
 
+.exam-hint {
+  margin: var(--s-3) 0 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
 [data-mic] {
   position: relative;
   padding: 16px 36px;

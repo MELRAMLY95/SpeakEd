@@ -176,7 +176,15 @@ def apply_security_headers(response):
         "https://*.gettyimages.com",
         "https://media-gettyimages-com.akamaized.net",
     ]
-    connect_src = ["'self'"]
+    # Chrome's Web Speech API (live captions in the exam) posts audio to
+    # Google's speech service. Exam pages block ads, so these hosts must be
+    # allowed even when AdSense is not loaded — otherwise getUserMedia
+    # succeeds but captions silently fail.
+    connect_src = [
+        "'self'",
+        "https://www.google.com",
+        "https://www.gstatic.com",
+    ]
     frame_src = []
     if ads_script:
         script_src.extend(

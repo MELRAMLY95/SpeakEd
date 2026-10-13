@@ -15,7 +15,6 @@
   let lastSpoken = "";
   let listening = false;
   let submitting = false;
-  let autoStartMic = true;
 
   function setStatus(label) {
     statusEl.textContent = label;
@@ -51,9 +50,7 @@
       questionEl.textContent = state.prompt.display || state.prompt.spoken;
       if (speakNow !== false) {
         await speak(state.prompt.spoken || state.prompt.display);
-        if (autoStartMic && !listening) {
-          setTimeout(() => startListen(), 500);
-        }
+        if (!listening) setStatus("🎤 Tap to speak");
       }
     }
     if (state.prompt && state.prompt.timer) {
@@ -132,9 +129,8 @@
     if (state.prompt) {
       questionEl.textContent = state.prompt.display;
       await speak(state.prompt.spoken || state.prompt.display);
-      if (autoStartMic) {
-        setTimeout(() => startListen(), 500);
-      }
+      setStatus("🎤 Tap to speak");
+      return;
     }
     setStatus("🎤 Ready");
   }
@@ -142,24 +138,33 @@
   async function startListen() {
     if (window.SpeakEdRecorder.isSpeaking() || listening || submitting) return;
     setError("");
-    listening = true;
-    micEl.textContent = "🛑 Stop recording";
-    micEl.classList.add("active");
-    setStatus("🎙️ Listening...");
+    micEl.disabled = true;
+    setStatus("🎙️ Starting microphone...");
     try {
-      await window.SpeakEdRecorder.start((text) => {
-        liveEl.textContent = text;
-      });
+      await window.SpeakEdRecorder.start(
+        (text) => {
+          liveEl.textContent = text;
+        },
+        (message) => {
+          setError(message);
+        }
+      );
     } catch (err) {
-      listening = false;
+      micEl.disabled = false;
       micEl.textContent = "🎤 Tap to speak";
       micEl.classList.remove("active");
       const denied = err && (err.name === "NotAllowedError" || err.name === "PermissionDeniedError");
       setError(denied
         ? "Microphone permission was denied. Allow the microphone and try again."
         : "The microphone could not be started. Check your browser settings.");
-      setStatus("🎤 Ready");
+      setStatus("🎤 Tap to speak");
+      return;
     }
+    listening = true;
+    micEl.disabled = false;
+    micEl.textContent = "🛑 Stop recording";
+    micEl.classList.add("active");
+    setStatus("🎙️ Listening...");
   }
 
   micEl.addEventListener("click", () => {
