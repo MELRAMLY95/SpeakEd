@@ -1,0 +1,57 @@
+# Render Blueprint for SpeakEd.
+# Create the service from the Render dashboard: New + -> "Blueprint" -> pick this
+# repo. Render provisions the web service and a managed PostgreSQL database and
+# wires DATABASE_URL automatically. Set OWNER_EMAIL and OWNER_PASSWORD (marked
+# sync: false) when prompted so you can sign in while the site is private.
+services:
+  - type: web
+    name: speaked
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --timeout 180 --workers 2
+    healthCheckPath: /
+    envVars:
+      # Pin the Python runtime so builds are reproducible.
+      - key: PYTHON_VERSION
+        value: 3.12.3
+      # Marks this as a production deploy so the strict startup checks run and
+      # the session cookie is HTTPS-only.
+      - key: SPEAKED_ENV
+        value: production
+      # Stable signing key generated once by Render and kept across deploys so
+      # users are not logged out on every redeploy.
+      - key: SECRET_KEY
+        generateValue: true
+      # Managed PostgreSQL connection string (the free SQLite file would be wiped
+      # on every redeploy, which is why the app refuses to start on SQLite here).
+      - key: DATABASE_URL
+        fromDatabase:
+          name: speaked-db
+          property: connectionString
+      # "auto" uses an AI key if one is set and otherwise falls back to the
+      # offline rule-based marker, so the site runs with no external keys.
+      - key: AI_PROVIDER
+        value: auto
+      # Optional AI keys for real exam marking. Add either one in the dashboard
+      # to enable AI marks; leave unset to run with the rule-based fallback.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: ZAI_API_KEY
+        sync: false
+      # Private preview: only the owner account can sign in. Set these two in the
+      # dashboard to the username (email) and password you want to sign in with.
+      - key: PRIVATE_MODE
+        value: "true"
+      - key: OWNER_EMAIL
+        sync: false
+      - key: OWNER_PASSWORD
+        sync: false
+      - key: OWNER_NAME
+        value: Owner
+
+databases:
+  - name: speaked-db
+    plan: free
+    databaseName: speaked
+    user: speaked
