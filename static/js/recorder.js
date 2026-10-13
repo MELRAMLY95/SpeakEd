@@ -14,6 +14,8 @@ window.SpeakEdRecorder = {
   fillerCount: 0,
   lastPauseAt: 0,
   onSpeakingCallback: null,
+  _recognitionFatal: false,
+  _onError: null,
 
   available() {
     return "webkitSpeechRecognition" in window || "SpeechRecognition" in window;
@@ -29,10 +31,62 @@ window.SpeakEdRecorder = {
     rec.lang = "en-GB";
     rec.continuous = true;
     rec.interimResults = true;
+    rec.maxAlternatives = 1;
     return rec;
   },
 
-  start(onUpdate) {
+  _errorMessage(code) {
+    if (code === "not-allowed" || code === "service-not-allowed") {
+      return "Microphone permission was denied. Allow the microphone and try again.";
+    }
+    if (code === "audio-capture") {
+      return "The microphone could not be opened. Close other apps using it and try again.";
+    }
+    if (code === "network") {
+      return "Live captions could not connect. Keep speaking, then tap Stop — your recording will still be sent.";
+    }
+    return "";
+  },
+
+  _bindRecognition(onUpdate) {
+    if (!this.available()) {
+      onUpdate("", true);
+      return;
+    }
+    this.recognition = this.create();
+    this.recognition.onresult = (event) => {
+      let text = "";
+      for (let i = 0; i < event.results.length; i += 1) {
+        text += event.results[i][0].transcript;
+      }
+      this.transcript = text.trim();
+      this.fillerCount = (this.transcript.match(/\b(um|uh|er|erm|like)\b/gi) || []).length;
+      const now = Date.now();
+      if (now - this.lastPauseAt > 900) this.pauseCount += 1;
+      this.lastPauseAt = now;
+      onUpdate(this.transcript, true);
+    };
+    this.recognition.onerror = (event) => {
+      const code = (event && event.error) || "";
+      if (code === "no-speech" || code === "aborted") return;
+      if (code === "not-allowed" || code === "service-not-allowed") {
+        this._recognitionFatal = true;
+      }
+      const message = this._errorMessage(code);
+      if (message && this._onError) this._onError(message);
+      onUpdate(this.transcript, true);
+    };
+    this.recognition.onend = () => {
+      if (!this.active || this._recognitionFatal || !this.recognition) return;
+      try {
+        this.recognition.start();
+      } catch (err) {
+        /* already running */
+      }
+    };
+  },
+
+  start(onUpdate, onError) {
     this.transcript = "";
     this.startedAt = Date.now();
     this.pauseCount = 0;
@@ -41,36 +95,25 @@ window.SpeakEdRecorder = {
     this.chunks = [];
     this.mimeType = "";
     this.active = true;
+    this._recognitionFatal = false;
+    this._onError = typeof onError === "function" ? onError : null;
 
     const startRecognition = () => {
-      if (!this.available()) {
-        onUpdate("", true);
-        return Promise.resolve();
-      }
-      this.recognition = this.create();
-      this.recognition.onresult = (event) => {
-        let text = "";
-        for (let i = 0; i < event.results.length; i += 1) {
-          text += event.results[i][0].transcript;
-        }
-        this.transcript = text.trim();
-        this.fillerCount = (this.transcript.match(/\b(um|uh|er|erm|like)\b/gi) || []).length;
-        const now = Date.now();
-        if (now - this.lastPauseAt > 900) this.pauseCount += 1;
-        this.lastPauseAt = now;
-        onUpdate(this.transcript, true);
-      };
-      this.recognition.onerror = () => onUpdate(this.transcript, true);
+      this._bindRecognition(onUpdate);
+      if (!this.recognition) return;
       try {
         this.recognition.start();
       } catch (err) {
         onUpdate(this.transcript, true);
       }
-      return Promise.resolve();
     };
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-      return startRecognition();
+      startRecognition();
+      if (!this.available()) {
+        return Promise.reject(new Error("unsupported"));
+      }
+      return Promise.resolve();
     }
 
     return navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
@@ -87,7 +130,7 @@ window.SpeakEdRecorder = {
         };
         this.mediaRecorder.start(100);
       }
-      return startRecognition();
+      startRecognition();
     });
   },
 
@@ -98,6 +141,7 @@ window.SpeakEdRecorder = {
     } catch (err) {
       /* ignore */
     }
+    this.recognition = null;
     const duration = Date.now() - this.startedAt;
     const transcript = this.transcript;
     const metrics = {

@@ -261,7 +261,26 @@ def test_security_headers_are_present(client):
     csp = response.headers.get("Content-Security-Policy") or ""
     assert "script-src 'self'" in csp
     assert "object-src 'none'" in csp
+    assert "https://www.google.com" in csp
+    assert "https://www.gstatic.com" in csp
     assert "microphone=(self)" in (response.headers.get("Permissions-Policy") or "")
+
+
+def test_exam_csp_allows_chrome_speech_api_without_ads(client, monkeypatch):
+    from tests.fake_ai import install_fake
+
+    install_fake(monkeypatch)
+    signup(client)
+    room = client.post(
+        "/exam/start",
+        data={"exam_type": "full", "mode": "full", "topic_title": "Plastic pollution"},
+        follow_redirects=True,
+    )
+    assert room.status_code == 200
+    csp = room.headers.get("Content-Security-Policy") or ""
+    assert "https://www.google.com" in csp
+    assert "https://www.gstatic.com" in csp
+    assert "googlesyndication" not in csp
 
 
 def test_get_logout_does_not_clear_session_when_csrf_on(csrf_client):

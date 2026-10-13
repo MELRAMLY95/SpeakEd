@@ -342,3 +342,15 @@ def test_results_restore_scores_cleared_after_marking(client, app, monkeypatch):
         assert restored["status"] == "completed"
         assert restored["roleplay_score"] is not None
 
+
+def test_exam_js_starts_microphone_only_on_tap():
+    from pathlib import Path
+
+    source = Path("static/js/exam.js").read_text(encoding="utf-8")
+    assert "autoStartMic" not in source
+    assert "setTimeout(() => startListen()" not in source
+    assert "listening = true;" in source
+    recorder = Path("static/js/recorder.js").read_text(encoding="utf-8")
+    assert "recognition.onend" in recorder
+    assert "this.recognition.start()" in recorder
+
