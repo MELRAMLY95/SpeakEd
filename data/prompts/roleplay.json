@@ -200,6 +200,206 @@
         {"spoken": "What skills can you bring to the office?", "unseen": false, "ask_question": false},
         {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "Please wear smart clothes, but you do not need a suit."}
       ]
+    },
+    {
+      "id": "rp09",
+      "title": "Sports club membership",
+      "topic_area": "Sport and leisure",
+      "category": "sport",
+      "difficulty": "easy",
+      "meaning_key": "join sports club",
+      "register": "informal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You want to join a local sports club. I am a member of the club. I will speak first.",
+      "candidate_situation": "You want to join a local sports club. The examiner is a member of the club and will speak first.",
+      "candidate_prompts": [
+        "Sport – which",
+        "Training – how often",
+        "!",
+        "Friends – who with",
+        "? Club – cost"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Which sport would you like to do at the club?", "unseen": false, "ask_question": false},
+        {"spoken": "How often would you like to train?", "unseen": false, "ask_question": false},
+        {"spoken": "Have you played this sport before?", "unseen": true, "ask_question": false},
+        {"spoken": "Who would you like to come with?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "It costs fifteen pounds a month."}
+      ]
+    },
+    {
+      "id": "rp10",
+      "title": "Recycling at school",
+      "topic_area": "The environment",
+      "category": "environment",
+      "difficulty": "medium",
+      "meaning_key": "school recycling project",
+      "register": "informal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are talking to a classmate about a recycling project at school. I am your classmate. I will speak first.",
+      "candidate_situation": "You are talking to a classmate about a recycling project at school. The examiner is your classmate.",
+      "candidate_prompts": [
+        "Recycling – what",
+        "Project – why important",
+        "!",
+        "Help – how",
+        "? Recycling – where bins"
+      ],
+      "examiner_prompts": [
+        {"spoken": "What do you want our class to recycle?", "unseen": false, "ask_question": false},
+        {"spoken": "Why is this project important?", "unseen": false, "ask_question": false},
+        {"spoken": "When should we start?", "unseen": true, "ask_question": false},
+        {"spoken": "How can students help?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "The bins are next to the school hall."}
+      ]
+    },
+    {
+      "id": "rp11",
+      "title": "Restaurant booking",
+      "topic_area": "Food and drink",
+      "category": "food",
+      "difficulty": "medium",
+      "meaning_key": "book restaurant table",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are booking a table at a restaurant. I am the waiter. I will speak first.",
+      "candidate_situation": "You are booking a table at a restaurant for a family meal. The examiner is the waiter.",
+      "candidate_prompts": [
+        "Table – how many people",
+        "Day – which",
+        "!",
+        "Food – type",
+        "? Restaurant – vegetarian"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Hello. How many people is the booking for?", "unseen": false, "ask_question": false},
+        {"spoken": "Which day would you like to come?", "unseen": false, "ask_question": false},
+        {"spoken": "What time would you like the table?", "unseen": true, "ask_question": false},
+        {"spoken": "Is there a type of food you prefer?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "Yes, we have several vegetarian dishes."}
+      ]
+    },
+    {
+      "id": "rp12",
+      "title": "School newspaper interview",
+      "topic_area": "The media",
+      "category": "media",
+      "difficulty": "medium",
+      "meaning_key": "school newspaper interview",
+      "register": "informal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are being interviewed for the school newspaper about your hobby. I am the student journalist. I will speak first.",
+      "candidate_situation": "A student journalist is interviewing you about your hobby for the school newspaper. The examiner is the journalist.",
+      "candidate_prompts": [
+        "Hobby – what",
+        "Hobby – how long",
+        "!",
+        "Hobby – why enjoy",
+        "? Newspaper – when published"
+      ],
+      "examiner_prompts": [
+        {"spoken": "What is your hobby?", "unseen": false, "ask_question": false},
+        {"spoken": "How long have you done this hobby?", "unseen": false, "ask_question": false},
+        {"spoken": "Who do you do it with?", "unseen": true, "ask_question": false},
+        {"spoken": "Why do you enjoy it?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "The newspaper comes out next Friday."}
+      ]
+    },
+    {
+      "id": "rp13",
+      "title": "Charity volunteer",
+      "topic_area": "Equality and community",
+      "category": "equality",
+      "difficulty": "medium",
+      "meaning_key": "volunteer at charity shop",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You want to volunteer at a charity shop. I am the shop manager. I will speak first.",
+      "candidate_situation": "You want to volunteer at a local charity shop. The examiner is the shop manager.",
+      "candidate_prompts": [
+        "Volunteer – why",
+        "Days – which",
+        "!",
+        "Tasks – what you can do",
+        "? Shop – opening times"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Why do you want to volunteer here?", "unseen": false, "ask_question": false},
+        {"spoken": "Which days can you help?", "unseen": false, "ask_question": false},
+        {"spoken": "How many hours can you give each week?", "unseen": true, "ask_question": false},
+        {"spoken": "What kind of jobs can you do in the shop?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "We are open from ten until four."}
+      ]
+    },
+    {
+      "id": "rp14",
+      "title": "Family celebration",
+      "topic_area": "Myself and others",
+      "category": "family",
+      "difficulty": "easy",
+      "meaning_key": "plan family celebration",
+      "register": "informal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are planning a family celebration with a relative. I am your cousin. I will speak first.",
+      "candidate_situation": "You are planning a family celebration with your cousin. The examiner is your cousin.",
+      "candidate_prompts": [
+        "Celebration – what",
+        "Place – where",
+        "!",
+        "Food – what to bring",
+        "? Celebration – time"
+      ],
+      "examiner_prompts": [
+        {"spoken": "What celebration are we planning?", "unseen": false, "ask_question": false},
+        {"spoken": "Where should we have it?", "unseen": false, "ask_question": false},
+        {"spoken": "How many people should we invite?", "unseen": true, "ask_question": false},
+        {"spoken": "What food should we bring?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "Let's start at three o'clock."}
+      ]
+    },
+    {
+      "id": "rp15",
+      "title": "Technology shop help",
+      "topic_area": "Technology",
+      "category": "technology",
+      "difficulty": "medium",
+      "meaning_key": "buy a laptop",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are in a technology shop. You want to buy a laptop. I am the shop assistant. I will speak first.",
+      "candidate_situation": "You are in a technology shop and you want to buy a laptop. The examiner is the shop assistant.",
+      "candidate_prompts": [
+        "Laptop – why needed",
+        "Price – budget",
+        "!",
+        "Features – what important",
+        "? Laptop – guarantee"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Hello. Why do you need a laptop?", "unseen": false, "ask_question": false},
+        {"spoken": "What is your budget?", "unseen": false, "ask_question": false},
+        {"spoken": "Will you use it for school or for games?", "unseen": true, "ask_question": false},
+        {"spoken": "Which features are most important for you?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "Yes, there is a two-year guarantee."}
+      ]
+    },
+    {
+      "id": "rp16",
+      "title": "Library study space",
+      "topic_area": "Education",
+      "category": "school",
+      "difficulty": "easy",
+      "meaning_key": "book library study room",
+      "register": "formal",
+      "examiner_intro": "We are now going to complete Task 1 of the test, which is the role play. You are at the library. You want to book a study room. I am the librarian. I will speak first.",
+      "candidate_situation": "You are at the library and you want to book a study room. The examiner is the librarian.",
+      "candidate_prompts": [
+        "Study room – why",
+        "Day – when",
+        "!",
+        "People – how many",
+        "? Library – wifi"
+      ],
+      "examiner_prompts": [
+        {"spoken": "Why do you need a study room?", "unseen": false, "ask_question": false},
+        {"spoken": "Which day would you like?", "unseen": false, "ask_question": false},
+        {"spoken": "How long will you need it?", "unseen": true, "ask_question": false},
+        {"spoken": "How many people will use the room?", "unseen": false, "ask_question": false},
+        {"spoken": "Do you have a question for me?", "unseen": false, "ask_question": true, "brief_reply": "Yes, the wifi is free for students."}
+      ]
     }
   ]
 }

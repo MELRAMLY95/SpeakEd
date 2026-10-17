@@ -78,6 +78,7 @@ def create_app(config_object=None):
             "adsense_client_id": publisher_id() if show_adsense_script else "",
             "estimated_grade": lambda score, exam_type="full": estimate_grade(score, exam_type=exam_type),
             "private_mode": bool(app.config.get("PRIVATE_MODE")),
+            "usage_limits_enabled": bool(app.config.get("USAGE_LIMITS_ENABLED")),
             "disclaimer": (
                 "AI-generated marks are estimates for practice purposes and are not official Pearson Edexcel marks or grades."
             ),

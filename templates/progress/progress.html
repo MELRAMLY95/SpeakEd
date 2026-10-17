@@ -12,7 +12,7 @@
     <h1>Track your speaking improvement</h1>
     <p class="lead">{{ disclaimer }}</p>
   {% if is_premium %}
-    <p>Premium includes your full attempt history and does not count speaking attempts against a monthly Free cap.</p>
+    <p>Premium includes your full attempt history{% if usage_limits_enabled %} and does not count speaking attempts against a monthly Free cap{% endif %}.</p>
   {% endif %}
   </div>
 </section>

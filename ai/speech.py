@@ -105,7 +105,7 @@ def validate_audio_bytes(data: bytes, mime_type: str, filename: str = "turn.webm
     max_len = int(current_app.config.get("MAX_CONTENT_LENGTH") or 8 * 1024 * 1024)
     if len(data) > max_len:
         raise SpeechError("oversized_recording", "The recording is too large. Give a shorter answer and try again.")
-    if duration_ms and duration_ms < MIN_DURATION_MS:
+    if duration_ms and duration_ms < MIN_DURATION_MS and len(data) < 1024:
         raise SpeechError("short_recording", "The recording was too short. Please answer again.")
     stripped = data.lstrip()[:16].lower()
     if data.startswith(b"MZ") or data.startswith(b"\x7fELF") or stripped.startswith(b"<!doctype") or stripped.startswith(b"<html"):

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from ai.prompts import PromptBank
 from ai.picture_media import browser_picture_src
 from services.image_fetcher import attach_picture_media
-from ai.speech import cleanup_attempt_audio, save_turn_audio, summarise_metrics
+from ai.speech import save_turn_audio, summarise_metrics
 from ai.voice import examiner_voice_payload
 from ai.ai_provider import get_ai
 from database.database import execute, query_all, query_one
@@ -206,20 +206,26 @@ class ExamEngine:
         metrics_summary = summarise_metrics(metrics)
         text = (transcript or "").strip()
         ai = get_ai()
+        duration_ms = int(metrics_summary.get("duration_ms") or 0)
+        words = len(text.split()) if text else 0
+        thin_browser_text = bool(audio_bytes) and (not text or (duration_ms >= 4000 and words < 6))
 
-        if not text and audio_bytes:
+        if thin_browser_text:
             if ai and ai.supports_audio():
+                heard = ""
                 try:
-                    text = (ai.transcribe_audio(audio_bytes, audio_mime or "audio/webm") or "").strip()
+                    heard = (ai.transcribe_audio(audio_bytes, audio_mime or "audio/webm") or "").strip()
                 except Exception:
-                    text = ""
-                if not text:
+                    heard = ""
+                if heard and (not text or len(heard.split()) > words):
+                    text = heard
+                elif not text:
                     return {
                         "error": "The recording could not be transcribed. Please record your answer again.",
                         "code": "transcription_unavailable",
                         "retry": True,
                     }
-            else:
+            elif not text:
                 return {
                     "error": "Speech could not be transcribed, and the current AI provider cannot listen to audio. Please record again in a browser with speech recognition.",
                     "code": "transcription_unavailable",
@@ -303,7 +309,6 @@ class ExamEngine:
             feedback = build_feedback(attempt_id, marking, transcripts, payload=fb_payload)
             payload.pop("marking_error", None)
             _save_payload(attempt_id, payload)
-            cleanup_attempt_audio(attempt_id)
             return {"marking": marking, "feedback": feedback, "unavailable": False}
         except Exception:
             logger.exception("Marking failed for attempt %s", attempt_id)
@@ -673,6 +678,8 @@ Return JSON: {{"prompt_id": "{options[0]['id']}", "reason": "short reason"}}""",
                 (payload.get("picture") or {}).get("image") or "",
                 title=(payload.get("picture") or {}).get("title") or "",
             ),
+            "roleplay_situation": (payload.get("roleplay") or {}).get("candidate_situation") or "",
+            "roleplay_candidate_prompts": (payload.get("roleplay") or {}).get("candidate_prompts") or [],
         }
 
     def _practice_note(self, text: str, stage: str, prompt: dict | None = None) -> str:

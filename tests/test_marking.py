@@ -121,3 +121,23 @@ def test_two_answers_produce_different_marking_evidence():
     assert short["prompt_marks"][0]["evidence"] != long["prompt_marks"][0]["evidence"]
     assert short["prompt_marks"][0]["strengths"] != long["prompt_marks"][0]["strengths"]
     assert short["score"] <= long["score"]
+
+
+def test_roleplay_marking_uses_4xes2_card_and_grid():
+    scheme = load_scheme()
+    ai = FakeAIProvider()
+    mark_roleplay(
+        [{"text": "I go about twice a month.", "question": "How often do you go to the cinema?"}],
+        scheme,
+        ai=ai,
+        context={
+            "situation": "You want to go to the cinema with a friend.",
+            "candidate_prompts": ["Cinema – how often", "Film – type", "!", "Food – what", "? Cinema – price"],
+        },
+    )
+    prompt = "\n".join(ai.prompts)
+    assert "CANDIDATE ROLE-PLAY CARD" in prompt
+    assert "Cinema – how often" in prompt
+    assert "apply once to EACH prompt" in prompt
+    assert scheme["task1_roleplay"]["method"]
+    assert "best-fit" in __import__("ai.marking", fromlist=["EXAMINER_SYSTEM"]).EXAMINER_SYSTEM

@@ -13,10 +13,17 @@
     <p class="billing-price">£0</p>
     <p class="billing-period">No payment required</p>
     <ul>
+      {% if usage_limits_enabled %}
       <li>{{ free_plan.limits.practice_exam }} speaking attempts per month</li>
       <li>{{ free_plan.limits.retry_marking }} marking retries per month</li>
       <li>{{ free_plan.limits.info_gen }} information requests per month</li>
       <li>Practice, progress, and the AI examiner within those limits</li>
+      {% else %}
+      <li>Unlimited speaking attempts</li>
+      <li>Unlimited marking retries</li>
+      <li>Unlimited information requests</li>
+      <li>Practice, progress, and the AI examiner with no monthly cap</li>
+      {% endif %}
       <li>Advertisements may appear on approved pages only</li>
     </ul>
     {% if snapshot.premium %}

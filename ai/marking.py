@@ -14,7 +14,14 @@ SCHEME_PATH = Path(__file__).resolve().parents[1] / "data" / "mark_scheme" / "4X
 MAX_MARKING_AUDIO_BYTES = 1_500_000
 EXAMINER_SYSTEM = (
     "You are a Pearson Edexcel IGCSE English as a Second Language (4XES2) Unit 4 speaking examiner. "
-    "Mark only from the student's actual spoken words and the official mark-scheme descriptors supplied. "
+    "Apply the official 4XES2 mark grids from the Sample Assessment Materials using a best-fit approach: "
+    "choose the band whose descriptors match the performance as a whole, then the mark inside that band. "
+    "If some descriptors of a higher band are met but others are not, award the lower band. "
+    "Mark positively, rewarding what the student can do. Do not penalise for features the grid does not require. "
+    "Communication and Content is a separate mark from Linguistic Knowledge and Accuracy; never let one inflate the other. "
+    "Task 1: apply the 0-2 grid once to each of the five role-play prompts (maximum 10). "
+    "Tasks 2 and 3: apply each 0-12 and 0-8 grid once to the whole task, not turn by turn. "
+    "Mark only from the student's actual spoken words and the official descriptors supplied. "
     "Do not award marks for keywords or answer length alone. "
     "Do not invent content, grammar mistakes, vocabulary, ideas, or pronunciation evidence the student did not produce. "
     "If no audio is attached, do not claim to have assessed pronunciation or intonation from sound. "
@@ -397,7 +404,7 @@ def _parse_extended_marks(result: dict) -> tuple[int, int, dict]:
     return comm, ling, extra
 
 
-def mark_roleplay(turns: list[dict], scheme: dict, *, ai=None, audio=None) -> dict:
+def mark_roleplay(turns: list[dict], scheme: dict, *, ai=None, audio=None, context=None) -> dict:
     ai = ai if ai is not None else get_ai()
     if not ai or not ai.is_available():
         raise MarkingUnavailable("No AI examiner is available, so role play was not marked.")
@@ -431,16 +438,38 @@ def mark_roleplay(turns: list[dict], scheme: dict, *, ai=None, audio=None) -> di
         if has_audio
         else "You do NOT have audio. Do not claim to have assessed pronunciation or intonation from sound."
     )
-    prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) Task 1 Role Play as an official speaking examiner.
+    context = context or {}
+    bullets = context.get("candidate_prompts") or []
+    situation = str(context.get("situation") or "").strip()
+    card_block = ""
+    if situation or bullets:
+        bullet_lines = "\n".join(f"- {item}" for item in bullets) or "- (not recorded)"
+        card_block = (
+            f"CANDIDATE ROLE-PLAY CARD (the student can see these bullets; "
+            f"'!' is an unseen prompt the examiner still asks; '?' means the student must ask a question):\n"
+            f"SITUATION: {situation or '(not recorded)'}\n"
+            f"{bullet_lines}\n\n"
+        )
+    prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) Task 1 Role Play exactly as in the official 4XES2 mark scheme.
 
-{chr(10).join(blocks)}
+{card_block}{chr(10).join(blocks)}
 
-OFFICIAL 4XES2 TASK 1 CRITERIA (apply once to EACH prompt, maximum 2 marks per prompt):
+OFFICIAL 4XES2 TASK 1 METHOD: {grid.get("method") or "Apply the mark grid once to each of the five prompts. Maximum 2 marks per prompt."}
+
+OFFICIAL 4XES2 TASK 1 CRITERIA (apply once to EACH prompt, maximum 2 marks per prompt, total /10):
 {_scheme_lines(grid["per_prompt"])}
+
+HOW TO APPLY THE GRID:
+- 2 marks: the required meaning of THAT prompt is clearly communicated, appropriate in the role play, and unambiguous.
+- 1 mark: the meaning is only partially clear, ambiguous, or only partly appropriate to the role play.
+- 0 marks: no rewardable communication, highly ambiguous, empty, or the student did not ask a required question.
+- Short answers may score 2 if they clearly communicate the required meaning.
+- Long or fluent answers that miss the required meaning cannot score 2.
+- The unseen '!' prompt is still marked against the examiner's spoken question.
+- The '?' prompt is 0 unless the student actually asked a relevant question.
 
 {audio_note}
 Award a mark only from those descriptors.
-A fluent answer that does not address THAT examiner prompt is not a 2.
 Do not invent words, ideas, grammar errors, or pronunciation evidence.
 If a student response is empty, award 0 for that turn.
 
@@ -536,18 +565,31 @@ def mark_extended(task: str, turns: list[dict], scheme: dict, *, ai=None, audio=
                 "Mark from the student's spoken words and the picture title/intro above. "
                 "Do not invent visual details that the student did not mention.\n"
             )
-    prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) {task_label} as an official speaking examiner.
+    picture_rule = ""
+    if task != "topic_talk":
+        picture_rule = (
+            "Task 3 high Communication and Content bands require the student to describe the picture "
+            "AND respond to the questions. A talk that ignores the photograph cannot reach the top band.\n"
+        )
+    prompt = f"""Mark this IGCSE ESL (Pearson 4XES2) {task_label} exactly as in the official 4XES2 mark scheme.
 
 {context_block}
 QUESTION AND ANSWER TURNS:
 {_format_qa(student_turns)}
 
-OFFICIAL 4XES2 COMMUNICATION AND CONTENT (0-12):
+OFFICIAL 4XES2 COMMUNICATION AND CONTENT (0-12) — apply ONCE to the whole task:
 {_scheme_lines(grid["communication_and_content"])}
 
-OFFICIAL 4XES2 LINGUISTIC KNOWLEDGE AND ACCURACY (0-8):
+OFFICIAL 4XES2 LINGUISTIC KNOWLEDGE AND ACCURACY (0-8) — apply ONCE to the whole task:
 {_scheme_lines(grid["linguistic_knowledge_and_accuracy"])}
 
+HOW TO APPLY THE GRIDS:
+- Use best fit on the performance as a whole. Do not average turn-by-turn marks.
+- First choose the band, then the mark inside that band.
+- If some descriptors of a higher band are met but others are not, use the lower band.
+- Award Communication and Content and Linguistic Knowledge and Accuracy independently.
+- Mark positively. Do not invent errors.
+{picture_rule}
 {audio_note}
 Choose a mark inside a band only if the student's actual words match that band.
 Do not award a high band for short or off-topic answers.
@@ -595,7 +637,15 @@ def mark_attempt(attempt_id: int, payload: dict, *, persist: bool = True) -> dic
         return marking_unavailable("No AI examiner is available. Marks were not generated.", scheme)
 
     try:
-        roleplay = mark_roleplay(roleplay_turns, scheme, ai=ai) if roleplay_turns else _empty_roleplay(scheme)
+        roleplay = mark_roleplay(
+            roleplay_turns,
+            scheme,
+            ai=ai,
+            context={
+                "situation": payload.get("roleplay_situation") or "",
+                "candidate_prompts": payload.get("roleplay_candidate_prompts") or [],
+            },
+        ) if roleplay_turns else _empty_roleplay(scheme)
         topic = mark_extended(
             "topic_talk",
             topic_turns,

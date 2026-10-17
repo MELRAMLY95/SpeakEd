@@ -111,7 +111,15 @@ def can_use_feature(user, feature: str) -> bool:
     return False
 
 
+def usage_limits_enabled() -> bool:
+    if not has_app_context():
+        return False
+    return bool(current_app.config.get("USAGE_LIMITS_ENABLED"))
+
+
 def get_usage_limit(user, feature: str) -> int | None:
+    if not usage_limits_enabled():
+        return None
     plan = plan_for(is_premium(user))
     limit = plan["limits"].get(feature)
     if limit is None:

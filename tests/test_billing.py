@@ -16,6 +16,7 @@ class BillingConfig(TestConfig):
     AD_CLIENT_ID = "ca-pub-XXXXXXXXXXXXXXXX"
     AD_SLOT_HOME = "slot-home"
     AD_SLOT_DASHBOARD = "slot-dashboard"
+    USAGE_LIMITS_ENABLED = False
     FREE_PRACTICE_EXAMS_PER_MONTH = 1
     FREE_RETRY_MARKING_PER_MONTH = 1
     FREE_INFO_GEN_PER_MONTH = 1
@@ -67,8 +68,20 @@ def test_free_user_can_access_free_functionality(tmp_path, monkeypatch):
     assert client.get("/progress").status_code == 200
 
 
-def test_free_user_cannot_exceed_practice_limit(tmp_path):
+def test_practice_is_unlimited_while_usage_limits_are_off(tmp_path):
     app = _app(tmp_path)
+    client = app.test_client()
+    signup(client)
+    first = client.post("/practice/start", data={"section": "roleplay"}, follow_redirects=True)
+    second = client.post("/practice/start", data={"section": "roleplay"}, follow_redirects=True)
+    assert first.status_code == 200
+    assert second.status_code == 200
+    assert b"Upgrade to Premium" not in second.data
+    assert client.get("/exam/2").status_code == 200
+
+
+def test_free_user_cannot_exceed_practice_limit(tmp_path):
+    app = _app(tmp_path, USAGE_LIMITS_ENABLED=True)
     client = app.test_client()
     signup(client)
     first = client.post("/practice/start", data={"section": "roleplay"}, follow_redirects=True)
@@ -257,7 +270,7 @@ def test_failed_payment_status_is_not_premium(tmp_path):
 
 
 def test_usage_survives_logout_login_and_refresh(tmp_path):
-    app = _app(tmp_path)
+    app = _app(tmp_path, USAGE_LIMITS_ENABLED=True)
     client = app.test_client()
     signup(client)
     client.post("/practice/start", data={"section": "roleplay"}, follow_redirects=True)

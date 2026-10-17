@@ -106,6 +106,8 @@ class Config:
     PREMIUM_PRICE_AMOUNT = _env_int("PREMIUM_PRICE_AMOUNT", 499)
     PREMIUM_CURRENCY = os.environ.get("PREMIUM_CURRENCY", "gbp")
     PREMIUM_INTERVAL = os.environ.get("PREMIUM_INTERVAL", "month")
+    # Monthly caps are off until an operator turns USAGE_LIMITS_ENABLED back on.
+    USAGE_LIMITS_ENABLED = _env_flag("USAGE_LIMITS_ENABLED", False)
     FREE_PRACTICE_EXAMS_PER_MONTH = _env_int("FREE_PRACTICE_EXAMS_PER_MONTH", 4)
     FREE_RETRY_MARKING_PER_MONTH = _env_int("FREE_RETRY_MARKING_PER_MONTH", 2)
     FREE_INFO_GEN_PER_MONTH = _env_int("FREE_INFO_GEN_PER_MONTH", 8)
@@ -145,6 +147,7 @@ class TestConfig(Config):
     PAYMENT_PROVIDER = "fake"
     PAYMENT_TEST_MODE = True
     PAYMENT_WEBHOOK_SECRET = "test-webhook-secret"
+    USAGE_LIMITS_ENABLED = False
     FREE_PRACTICE_EXAMS_PER_MONTH = 100
     FREE_RETRY_MARKING_PER_MONTH = 100
     FREE_INFO_GEN_PER_MONTH = 100

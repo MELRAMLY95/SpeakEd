@@ -52,7 +52,7 @@
       if (speakNow !== false) {
         await speak(state.prompt.spoken || state.prompt.display);
         if (autoStartMic && !listening) {
-          setTimeout(() => startListen(), 500);
+          setTimeout(() => startListen(), 700);
         }
       }
     }
@@ -88,9 +88,12 @@
     liveEl.textContent = transcript;
     if (!transcript && !captured.blob) {
       submitting = false;
-      setError("No speech was captured. Check the microphone and try again.");
+      setError("No speech was captured. Check the microphone, speak clearly, then tap Stop recording.");
       setStatus("🎤 Ready");
       return;
+    }
+    if (!transcript && captured.blob) {
+      setStatus("⏳ Transcribing");
     }
     const form = new FormData();
     form.append("transcript", transcript);
@@ -133,7 +136,7 @@
       questionEl.textContent = state.prompt.display;
       await speak(state.prompt.spoken || state.prompt.display);
       if (autoStartMic) {
-        setTimeout(() => startListen(), 500);
+        setTimeout(() => startListen(), 700);
       }
     }
     setStatus("🎤 Ready");
@@ -148,8 +151,11 @@
     setStatus("🎙️ Listening...");
     try {
       await window.SpeakEdRecorder.start((text) => {
-        liveEl.textContent = text;
+        liveEl.textContent = text || liveEl.textContent;
       });
+      if (!window.SpeakEdRecorder.available()) {
+        liveEl.textContent = "Listening… your words will be transcribed when you stop.";
+      }
     } catch (err) {
       listening = false;
       micEl.textContent = "🎤 Tap to speak";

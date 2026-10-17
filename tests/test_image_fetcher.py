@@ -2,7 +2,7 @@ import json
 from unittest.mock import patch
 
 from ai.picture_media import PictureLoadError, load_picture_media
-from services.image_fetcher import GETTY_IDS, ImageFetcher, attach_picture_media, fetch_getty_oembed
+from services.image_fetcher import GETTY_IDS, ImageFetcher, attach_picture_media, fetch_getty_oembed, pick_asset_id
 
 
 def test_picture_cards_cover_4xes2_chapters():
@@ -85,7 +85,15 @@ def test_fetch_getty_oembed_rejects_non_getty_hosts():
 
 def test_themes_cover_user_chapters():
     for key in ("friends_family", "myself", "hobbies", "education", "equality", "environment", "tourism", "media"):
-        assert GETTY_IDS[key].isdigit()
+        pool = GETTY_IDS[key]
+        assert isinstance(pool, list)
+        assert len(pool) >= 3
+        assert all(str(item).isdigit() for item in pool)
+
+
+def test_education_photo_rotates():
+    seen = {pick_asset_id("education") for _ in range(8)}
+    assert len(seen) >= 2
 
 
 def test_disallowed_picture_host_is_rejected():

@@ -1,14 +1,15 @@
 """Load Task 3 photographs from Getty Images' public oEmbed endpoint.
 
-Each topic uses a Getty asset id. SpeakEd asks
-https://embed.gettyimages.com/oembed?url=http://gty.im/{id} and displays the
-image URL Getty returns. Tests keep local SVG cards (PICTURE_SOURCE=local).
+Each topic has several Getty asset ids. SpeakEd picks a different id each time
+and asks https://embed.gettyimages.com/oembed?url=http://gty.im/{id}.
+Tests keep local SVG cards (PICTURE_SOURCE=local).
 """
 
 from __future__ import annotations
 
 import json
 import os
+import random
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -18,24 +19,26 @@ from ai.picture_media import browser_picture_src, local_svg_for_topic, topic_key
 GETTY_OEMBED = "https://embed.gettyimages.com/oembed?url=http://gty.im/{asset_id}"
 GETTY_CREDIT = "Photograph from Getty Images"
 
-# Public Getty Images asset ids for 4XES2 speaking topics.
+# Several public Getty Images asset ids per 4XES2 topic so the photo rotates.
 GETTY_IDS = {
-    "homes": "1435656847",
-    "tourism": "2138928345",
-    "education": "2169899800",
-    "school": "2169899800",
-    "work": "2193568098",
-    "myself": "2189077006",
-    "friends_family": "1400784606",
-    "hobbies": "1561143023",
-    "equality": "1864423396",
-    "environment": "2150674855",
-    "media": "948544134",
-    "technology": "2178258003",
-    "sport": "1455481853",
-    "health": "888273280",
-    "food": "1813251478",
+    "homes": ["1435656847", "1651033002", "1416913509", "2209732703"],
+    "tourism": ["2138928345", "1824595205", "1488646953"],
+    "education": ["2169899800", "2209544218", "2203120233", "2206652191", "1324059362"],
+    "school": ["2169899800", "2209544218", "2203120233", "2206652191", "1324059362"],
+    "work": ["2193568098", "2197230968", "2161803902"],
+    "myself": ["2189077006", "1363289792", "1313823475"],
+    "friends_family": ["1400784606", "948544134", "2206183844", "2158329332"],
+    "hobbies": ["1561143023", "1561142466", "1452860606"],
+    "equality": ["1864423396", "2200866856", "2214245446"],
+    "environment": ["2150674855", "1382387513", "1483622172"],
+    "media": ["948544134", "1416913509", "1504711434"],
+    "technology": ["2178258003", "1023919092", "1531297484"],
+    "sport": ["1455481853", "1517649763", "1579952363"],
+    "health": ["888273280", "1840349194", "1967042640"],
+    "food": ["1813251478", "1414235077", "1504674900"],
 }
+
+_LAST_ASSET: dict[str, str] = {}
 
 
 class ImageFetcher:
@@ -89,7 +92,7 @@ class ImageFetcher:
 
     def get_image_for_topic(self, topic: str, force_refresh: bool = False, asset_id: str = "") -> str:
         topic = (topic or "").strip() or "homes"
-        asset_id = str(asset_id or GETTY_IDS.get(topic) or GETTY_IDS["homes"])
+        asset_id = str(asset_id or pick_asset_id(topic))
         if _picture_source() == "local":
             return local_svg_for_topic(topic)
         key = _cache_key(topic, asset_id)
@@ -111,8 +114,35 @@ class ImageFetcher:
         return self._entry(_cache_key(topic, asset_id)).get("credit") or GETTY_CREDIT
 
 
+def ids_for_topic(topic: str, card: dict | None = None) -> list[str]:
+    extra: list[str] = []
+    if card:
+        raw = card.get("getty_ids") or card.get("getty_id")
+        if isinstance(raw, list):
+            extra = [str(item) for item in raw if str(item).isdigit()]
+        elif str(raw or "").isdigit():
+            extra = [str(raw)]
+    pool = GETTY_IDS.get(topic) or GETTY_IDS["homes"]
+    if isinstance(pool, str):
+        pool = [pool]
+    ordered: list[str] = []
+    for item in extra + [str(value) for value in pool]:
+        if item.isdigit() and item not in ordered:
+            ordered.append(item)
+    return ordered or ["1435656847"]
+
+
+def pick_asset_id(topic: str, card: dict | None = None) -> str:
+    pool = ids_for_topic(topic, card)
+    last = _LAST_ASSET.get(topic)
+    choices = [item for item in pool if item != last] or pool
+    chosen = random.choice(choices)
+    _LAST_ASSET[topic] = chosen
+    return chosen
+
+
 def _cache_key(topic: str, asset_id: str = "") -> str:
-    return str(asset_id or GETTY_IDS.get(topic) or topic)
+    return str(asset_id or topic)
 
 
 def _cfg(name: str, default: str = "") -> str:
@@ -169,7 +199,7 @@ def get_image_fetcher() -> ImageFetcher:
 def attach_picture_media(card: dict | None) -> dict:
     shown = dict(card or {})
     topic = topic_key_from_card(shown)
-    asset_id = str(shown.get("getty_id") or GETTY_IDS.get(topic) or GETTY_IDS["homes"])
+    asset_id = pick_asset_id(topic, shown)
     shown["getty_id"] = asset_id
     fetcher = get_image_fetcher()
     if _picture_source() == "local":
