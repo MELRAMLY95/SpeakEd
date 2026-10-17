@@ -1,4 +1,8 @@
 .env
+.env.speaked-4xes2
+.firebase/
+firebase-debug.log
+tools/
 *.db
 *.sqlite3
 __pycache__/

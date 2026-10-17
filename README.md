@@ -1,3 +1,13 @@
+---
+title: SpeakEd
+emoji: 🗣️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # SpeakEd
 
 A virtual speaking examiner for the Edexcel 4XES2 English (as a Second Language) speaking exam. Students practise, record answers, and receive practice marks and estimated grades. Built with Flask, PostgreSQL (SQLite for local dev), and gunicorn.

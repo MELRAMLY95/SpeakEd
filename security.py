@@ -31,13 +31,15 @@ _SECRET_PATTERNS = (
 
 
 def apply_production_security(app) -> None:
-    """HTTPS cookies and proxy headers for hosted deployments (Render)."""
-    if not app.config.get("IS_PRODUCTION"):
+    """HTTPS cookies and proxy headers for hosted deployments (Render, Firebase, Cloud Run)."""
+    hosted = app.config.get("IS_PRODUCTION") or app.config.get("IS_CLOUD_RUN")
+    if not hosted:
         return
     app.config["SESSION_COOKIE_SECURE"] = True
     app.config["PREFERRED_URL_SCHEME"] = "https"
-    app.config["DEBUG"] = False
-    app.config["TESTING"] = False
+    if app.config.get("IS_PRODUCTION"):
+        app.config["DEBUG"] = False
+        app.config["TESTING"] = False
     from werkzeug.middleware.proxy_fix import ProxyFix
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)

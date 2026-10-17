@@ -137,4 +137,10 @@ def _wants_json() -> bool:
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(debug=bool(app.config.get("DEBUG")))
+    import os
+
+    app.run(
+        host=os.environ.get("HOST", "127.0.0.1"),
+        port=int(os.environ.get("PORT") or "5000"),
+        debug=bool(app.config.get("DEBUG")),
+    )

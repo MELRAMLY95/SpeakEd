@@ -52,9 +52,18 @@ class Config:
     # Render sets RENDER=true on every service automatically, so this needs
     # no manual configuration — see https://render.com/docs/environment-variables
     IS_RENDER = os.environ.get("RENDER", "").lower() == "true"
-    # Anything hosted counts as production. SPEAKED_ENV lets non-Render hosts
-    # opt in to the same strict startup checks.
-    IS_PRODUCTION = IS_RENDER or os.environ.get("SPEAKED_ENV", "").lower() == "production"
+    # Cloud Functions gen2 and Cloud Run set K_SERVICE. Firebase Hosting
+    # rewrites onto that service. Full production checks (Postgres required)
+    # stay opt-in via SPEAKED_ENV or a postgres DATABASE_URL on Cloud Run.
+    IS_CLOUD_RUN = bool(os.environ.get("K_SERVICE") or os.environ.get("FUNCTION_TARGET"))
+    IS_PRODUCTION = (
+        IS_RENDER
+        or os.environ.get("SPEAKED_ENV", "").lower() == "production"
+        or (
+            IS_CLOUD_RUN
+            and (os.environ.get("DATABASE_URL") or "").startswith(("postgres://", "postgresql://"))
+        )
+    )
     STORE_AUDIO = os.environ.get("STORE_AUDIO", "false").lower() == "true"
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
@@ -170,7 +179,7 @@ def validate_runtime_config(config: dict) -> None:
     if not url.startswith(("postgres://", "postgresql://")):
         raise RuntimeError(
             "Production requires a PostgreSQL DATABASE_URL. Got "
-            f"{url.split('://')[0] or '(empty)'}://... Render's disk is ephemeral, so SQLite "
+            f"{url.split('://')[0] or '(empty)'}://... Hosted disks are ephemeral, so SQLite "
             "would lose every account and all progress on each redeploy. Attach a PostgreSQL "
             "instance and set DATABASE_URL."
         )
